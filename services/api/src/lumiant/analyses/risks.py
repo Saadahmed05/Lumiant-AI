@@ -224,6 +224,9 @@ def run_expiring(query: QueryService, principal: Principal, *, days: int, limit:
             "analysis_unavailable", "This analysis needs lot expiry dates, which are not mapped for this tenant.", 409
         )
     as_of = _as_of(query, principal.tenant_id)
+    action = "analysis:expiring_lots"
+    on_hand = {"field": "quantity", "op": "gt", "value": "0"}
+    in_window = {"field": "lot.expiry_date", "op": "lte", "value": (as_of + timedelta(days=days)).isoformat()}
     plan = QueryPlan.model_validate(
         {
             "dataset": "stock_balance",
@@ -236,29 +239,30 @@ def run_expiring(query: QueryService, principal: Principal, *, days: int, limit:
                 "lot.expiry_date",
                 "quantity",
             ],
-            "filters": [
-                {"field": "quantity", "op": "gt", "value": "0"},
-                {"field": "lot.expiry_date", "op": "lte", "value": (as_of + timedelta(days=days)).isoformat()},
-            ],
+            "filters": [on_hand, in_window],
             "order_by": [{"field": "lot.expiry_date", "direction": "asc"}],
             "limit": limit,
         }
     )
-    result = query.run_plan(
-        plan, principal, action="analysis:expiring_lots", metric=MetricRef("expiring_lots", 1, "draft", EXPIRY_RULE)
-    )
-    expired = 0
+    result = query.run_plan(plan, principal, action=action, metric=MetricRef("expiring_lots", 1, "draft", EXPIRY_RULE))
     for row in result.rows:
         expiry = row.get("lot.expiry_date")
         if isinstance(expiry, date):
             left = (expiry - as_of).days
             row["days_to_expiry"] = left
             row["status"] = "expired" if left < 0 else "expiring"
-            expired += left < 0
+
+    def count(limit_filter: dict[str, Any]) -> int:
+        """Counted in the source: `limit` caps the listing, never the totals."""
+        res = query.run_plan(_count_plan("stock_balance", [on_hand, limit_filter]), principal, action=action)
+        return int(res.rows[0]["n"])
+
+    total = count(in_window)
+    expired = count({"field": "lot.expiry_date", "op": "lt", "value": as_of.isoformat()})
     result.columns += [Column("days_to_expiry", "integer", "measure"), Column("status", "string", "dimension")]
     result.provenance["rule"] = EXPIRY_RULE
     result.provenance["parameters"] = {"days": days, "as_of": as_of.isoformat()}
-    result.summary = {"expired": expired, "expiring": len(result.rows) - expired, "days": days}
+    result.summary = {"expired": expired, "expiring": total - expired, "days": days}
     return result
 
 

@@ -1,6 +1,6 @@
 # Current State
 
-_Rewritten at the end of every session. Last update: 2026-10-28, S04 (integration of M8 + M10 D1–D2, M9 agent, M10 D3/D4 Analyst Lens)._
+_Rewritten at the end of every session. Last update: 2026-10-31, S05 (enterprise audit, three answer-integrity fixes; audit report in `../CODEBASE_AUDIT.md`, changes uncommitted)._
 
 ## Milestone
 **M1–M6 complete on synthetic data; M8 (client SAP extract, local only), M9 (Gemini-ready agent with screen context, streaming and insights) and M10 D1–D3 + part of D4 (command-center UI, Analyst Lens) done.** Code is on GitHub (`syedmukheeth/Lumiant-AI`, `main`); CI green on all five jobs.
@@ -18,7 +18,7 @@ _Rewritten at the end of every session. Last update: 2026-10-28, S04 (integratio
 | **M8** client SAP extract: `lumiant-ingest sap` → git-ignored DuckDB with a hard control-total gate (real import passed, nothing tracked), `customer_extract` class (ADR-0008), stock statuses, source-vs-computed value check, SAP data-quality checks | `07-customer/CLIENT_DATA_INTAKE.md`, `test_private_data_guard.py`, session log S03 |
 | **M9** agent: 12 typed tools incl. `concentration` and `insights`; screen context + follow-ups (validated, scope-checked, narrowing only); SSE streaming; insight feed with capability gaps; Gemini + Anthropic adapters behind tenant approval (fake-client tested) | `test_agent.py` (golden/adversarial incl. 8 new), `test_agent_context.py` (24), ADR-0009/0010 |
 | **M10** UI: dark-first command-center design system, rail + command bar, ⌘K palette, shortcuts; Overview with insight feed; **Analyst Lens** (right-click / ✦ / `L` on KPIs, panels, bars, rows, insights), persistent dock with streamed trace, pins; assistant page on the same renderer | web unit 50 (`analyst.test.tsx` …), e2e 23/23, browser check S04-9 |
-| Checks (S04) | API 375 passed + 6 env-gated skips · ruff/format/mypy strict clean · web lint/tsc clean · unit 50 · e2e 23/23 · pip-audit + pnpm audit 0 findings · GitHub Actions green (`668216e`) |
+| Checks (S05, Windows) | API 392 passed + 6 env-gated skips · ruff/format/mypy strict clean · web lint/tsc clean · unit 55 · e2e 23/23 · pip-audit 0 · pnpm audit 1 moderate (dev only, minimatch via eslint) · last GitHub Actions run green on `647ef7b`, before these changes |
 | Linux / containers / PostgreSQL 16 / Redis 7 | cloud verification CV-1…CV-6; CI `docker` and `api-postgres-redis` jobs |
 
 ## What is simulated (not evidence of customer readiness)

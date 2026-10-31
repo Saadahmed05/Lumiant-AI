@@ -34,7 +34,8 @@ Status: **Implemented and tested (M1)** in `services/api/src/lumiant/api/`. Base
 | GET | `/api/analyses/below-reorder` | `inventory:read` | items under reorder level in scope; same filters as balances plus `offset`/`limit`; `summary {flagged, pairs_without_policy, uom_mismatched_lines}` |
 | GET | `/api/analyses/excess-stock` | `inventory:read` | on hand above customer maximum; same envelope as below-reorder |
 | GET | `/api/analyses/dormant` | `inventory:read` | `days` (1–3650, default 270); stock with no ISSUE in that window |
-| GET | `/api/analyses/expiring-lots` | `inventory:read` | `days` (0–3650, default 60); expired and expiring lots on hand |
+| GET | `/api/analyses/expiring-lots` | `inventory:read` | `days` (0–3650, default 60); expired and expiring lots on hand. `summary.expired` and `summary.expiring` are counted in the source, so `limit` caps the listing only |
+| GET | `/api/insights` | `inventory:read` | `fresh` (bool) → `{insights[], gaps[], failed[], complete, generated_at}`. `gaps`: data not mapped. `failed` (`{id, label, code, message}`): a check that could not run. `complete` is false when anything failed; such a feed is never cached and must not be read as "nothing to report" |
 | GET | `/api/analyses/data-quality` | `inventory:read` | list of checks with status/count/examples (value checks need `cost:read`) |
 | GET | `/api/analyses/abc` | `inventory:read` + `cost:read` | `a`, `b` cutoffs required (no defaults), optional `currency`; 409 `abc_mixed_currency` if several |
 | GET | `/api/analyses/cost-comparison` | `inventory:read` + `cost:read` | `item_id`, `warehouse_id`; MWA, FIFO, latest receipt cost, latest valid purchase price, source valuation, reconciliation, lots |
@@ -46,7 +47,7 @@ Status: **Implemented and tested (M1)** in `services/api/src/lumiant/api/`. Base
 | GET | `/api/admin/audit` | `audit:read` | tenant's audit events; filters `decision`, `action` prefix |
 | POST | `/api/admin/reconciliation` | `admin:tenant` + `cost:read` | `{tolerance, rows[{warehouse_id,currency,value}]}` → per-line status + `passed` |
 | GET | `/api/agent/suggestions` | `chat:use` | starter questions |
-| POST | `/api/agent/chat` | `chat:use` | `{message}` (2–500 chars) → `{mode, notice, kind (tools/clarify/unsupported), answer, blocks[], tool_calls[], provenance[], warnings[], follow_ups[], choices[], grounding}` |
+| POST | `/api/agent/chat` | `chat:use` | `{message}` (2–500 chars) → `{mode, notice, kind (tools/clarify/unsupported), answer, blocks[], tool_calls[], provenance[], warnings[], follow_ups[], choices[], grounding}`. `grounding.passed` false means figures could not be verified; `grounding.source` `blocked` means model text was withheld and `answer` is a fixed notice |
 | POST | `/api/agent/feedback` | `chat:use` | `{rating: up/down, reason?}` recorded in the audit trail |
 | POST | `/api/query` | `query:run` | body = QueryPlan → envelope |
 

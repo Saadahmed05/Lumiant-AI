@@ -156,6 +156,14 @@ export function AnswerBody({
     <div className="answer-in space-y-3" data-testid={testId}>
       {r.notice && <p className="text-xs text-ink-3">{r.notice}</p>}
       <p className="text-sm leading-relaxed text-ink">{r.answer}</p>
+      {!r.grounding.passed && (
+        <p role="alert" className="flex items-start gap-1.5 text-xs text-signal" data-testid="grounding-failed">
+          <TriangleAlert size={13} className="mt-px shrink-0" aria-hidden />
+          {r.grounding.source === "blocked"
+            ? "The AI answer was withheld because its figures could not be traced to your data."
+            : "Some figures in this answer could not be traced to the results. Check them against the table and source."}
+        </p>
+      )}
       {r.blocks.map((b, i) => (
         <BlockView key={i} block={b} compact={compact} />
       ))}
@@ -199,7 +207,7 @@ export function AnswerBody({
         <span title={r.mode === "rules" ? "Built-in question matching; no data left this system" : "External AI chose the analysis and worded the answer from the results"}>
           {MODE_LABEL[r.mode] ?? r.mode}
         </span>
-        {r.grounding.source === "model" && <span className="text-ok">numbers checked</span>}
+        {r.grounding.passed && r.grounding.source === "model" && <span className="text-ok">numbers checked</span>}
         {r.tool_calls.length > 0 && <span className="figure">used: {r.tool_calls.map((c) => c.name).join(", ")}</span>}
         {r.elapsed_ms !== undefined && <span className="figure">{r.elapsed_ms} ms</span>}
         {r.provenance.map((p, i) => (
