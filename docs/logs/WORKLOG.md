@@ -207,3 +207,10 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Commands + results:** TEST_RUNS S05-1…S05-7. API 392 passed + 6 env-gated skips; web unit 55; e2e 23/23.
 - **Not done:** grounding limits (audit LA-10), the other audit findings, live model test (ISSUES #13). `pnpm audit` reports one dev-only moderate advisory, which CI will likely flag. Not committed (owner decides).
 - **Next:** `CODEBASE_AUDIT.md` §18.
+
+## 2026-10-31 · S05 · No-mapping chat prototype
+- **Goal:** owner wants a simple chatbot that works out the schema itself, with no user mapping. Build a prototype and measure it on the demo data.
+- **Done:** `lumiant.nomap`, not wired into the API: discovery from the database itself, guarded SQL with per-user limits rewritten into the query, chat loop with number grounding, CLI. Evaluation in `services/api/eval/nomap`, on branch `prototype/no-mapping-chat`.
+- **Result:** of 52 questions across 3 schemas, 49 right, 1 asked for clarification, 2 differ from the key by a disclosed SAR 882.20, none silently wrong. See `eval/nomap/RESULTS.md`.
+- **Found:** `_dataset_info` lists the planted problems, so evaluation copies drop it. A 0.05% scoring tolerance hid the 882.20 difference, so scoring is now exact. A Snowflake table function passed the guard, now refused. SQL Server single-number queries work on this path (compare audit LA-51).
+- **Not done:** live model loop (no API key), real SAP-sized schema, knowledge packs, reconciliation. ADR-0002 still stands: replacing it is the owner's decision. Not committed (owner decides).

@@ -1,0 +1,151 @@
+[
+ {
+  "id": "g01",
+  "kind": "answer",
+  "value": 20245522.22,
+  "answer": "Total inventory value is SAR 20,245,522.22 across all six stock statuses, all at plant GM01. By status: unrestricted 17,204,144.82; quality inspection 2,264,900.52; returns 302,426.83; blocked 283,910.56; in transit 113,382.56; restricted 76,756.92. Only unrestricted and quality inspection have stored values (together SAR 19,469,045.34); the other four are quantity times unit price.",
+  "how_calculated": "Used v_stock (one row per storage location, material and status), excluded source_row 5064, and summed the stored source_value where present, otherwise quantity * valuation_price. Check: the same total from sap_mb52 joined to sap_material_master on material and plant gave 20245522.21732. Pure price times quantity on every row gave 20245485.67772, a difference of 36.54 that comes from 5 rows whose stored value differs from price times quantity.",
+  "assumptions": "Inventory value means all stock statuses, including blocked, returns, restricted and in transit. If returns are not valued, the total is SAR 19,943,095.38. If only stored values count, it is SAR 19,469,045.34. Source row 5064 is an exact duplicate of row 9 (material 004100007, S011, 20 EA, SAR 882.20) and is removed; with it the total is SAR 20,246,404.42. The sap_mb52_totals footer is not added, and its figures include the duplicate. unit_price (price / price_unit) is the per-unit price, so items priced per 100 are not overstated. Understated: 44 stock rows have no price or a zero price and count as zero, covering 41 unrestricted, 2 quality inspection and 1 blocked row. All values are SAR. Stock exists only for GM01 in this data; GM02 and GM03 have no stock rows.",
+  "sql": "with s as (select * from v_stock where source_row<>5064) select stock_status, sum(coalesce(source_value, quantity*valuation_price)) val from s group by rollup(stock_status) order by 1"
+ },
+ {
+  "id": "g02",
+  "kind": "answer",
+  "value": 17204144.82,
+  "answer": "Unrestricted stock is worth SAR 17,204,144.82, all at plant GM01.",
+  "how_calculated": "Summed value_unrestricted in sap_mb52 with exact duplicate rows removed. Check: v_stock with status unrestricted, excluding source_row 5064, gave the same 17204144.82. Quantity * price on v_stock gave 17204990.48016 before removing the duplicate, which is 36.54 below the stored 17205027.02.",
+  "assumptions": "Source row 5064 is an exact duplicate of row 9 and is removed (SAR 882.20). With it, the figure is SAR 17,205,027.02, which matches the sap_mb52_totals footer, so the footer includes the duplicate. Stored values are used as they stand. 41 unrestricted rows have no price or a zero price and are valued at zero, so the figure is understated: 3,502 EA, 3,444.003 KG, 1,654.94 L, 831.745 M, 634 PC and 1,621 ROL. Unrestricted stock held in storage locations QA01 and RT01 is included, because status comes from the column and not the location name.",
+  "sql": "with d as (select distinct plant,storage_location,material,base_uom,unrestricted,quality_inspection,value_quality_inspection,transit_transfer,restricted_use,blocked,returns,value_unrestricted from sap_mb52) select sum(value_unrestricted) from d"
+ },
+ {
+  "id": "g03",
+  "kind": "answer",
+  "value": 2264900.52,
+  "answer": "Stock in quality inspection is worth SAR 2,264,900.52, all at plant GM01.",
+  "how_calculated": "Summed value_quality_inspection in sap_mb52. Checks: v_stock with status quality_inspection gave 2264900.52 in stored values, quantity * valuation_price gave 2264900.52024, and the sap_mb52_totals footer shows 2264900.52.",
+  "assumptions": "Quality inspection means the stock status column, not storage location QA01. QA01 holds only SAR 24,138.01 of this; most is in S005 at SAR 1,784,802.53. The duplicate row has no quality inspection stock, so it has no effect. Two rows have a zero price and count as zero, covering 373 EA and 380 PC, so the figure is slightly understated.",
+  "sql": "select sum(value_quality_inspection) from sap_mb52"
+ },
+ {
+  "id": "g04",
+  "kind": "answer",
+  "value": {
+   "EA": 1537.000,
+   "KG": 148.151,
+   "M": 881.282,
+   "PC": 481.000
+  },
+  "answer": "Blocked stock is 1,537 EA, 148.151 KG, 881.282 M and 481 PC, across 13 rows at plant GM01. There is no blocked stock in L, ROL or SET. Valued at unit price, this is about SAR 283,910.56.",
+  "how_calculated": "Summed blocked by base_uom in sap_mb52, excluding the duplicate source row. Checks: the sap_mb52_totals footer shows the same quantity for each unit, and v_stock with status blocked has 13 rows with the same overall quantity. Value is blocked * unit_price from sap_material_master joined on material and plant, and matches quantity * valuation_price in v_stock (283910.56464).",
+  "assumptions": "How much is read as quantity, reported per unit because units must not be added; the SAR value is also given. Blocked has no stored value, so the value is calculated from the price. Material 004101918 (183 PC blocked) has a zero price, so the SAR value is understated.",
+  "sql": "select base_uom, sum(blocked) qty, count(*) filter (where blocked>0) n from sap_mb52 where source_row<>5064 group by 1 order by 1"
+ },
+ {
+  "id": "g05",
+  "kind": "answer",
+  "value": 3,
+  "answer": "There are 3 plants: GM01, GM02 and GM03.",
+  "how_calculated": "Counted rows in v_warehouse (3). Check: sap_material_master also has 3 distinct plants.",
+  "assumptions": "Plant means a plant code in the master data. Only GM01 has stock rows in sap_mb52, so GM02 and GM03 have master records but no stock in this data.",
+  "sql": "select (select count(*) from v_warehouse) wh, (select count(distinct plant) from sap_material_master) mm, (select count(distinct plant) from sap_mb52) stk"
+ },
+ {
+  "id": "g06",
+  "kind": "answer",
+  "value": 1488,
+  "answer": "The material master holds 1,488 distinct materials, in 1,859 material and plant records.",
+  "how_calculated": "Counted distinct material in sap_material_master. Check: row counts by plant are GM01 1,484, GM02 180 and GM03 195, which add to 1,859 records, and each material and plant pair appears once, so materials repeat across plants.",
+  "assumptions": "A material is counted once however many plants extend it. v_item has 1,500 items, because 12 materials appear in stock (sap_mb52) but have no material master record; they are not counted.",
+  "sql": "select count(distinct material) mats, count(*) recs from sap_material_master"
+ },
+ {
+  "id": "g07",
+  "kind": "answer",
+  "value": 15,
+  "answer": "There are 15 distinct A-class materials, in 20 material and plant records (GM01 15, GM02 1, GM03 4).",
+  "how_calculated": "Counted distinct material in sap_material_master where abc_indicator = 'A'. Check: grouping by plant gave 15, 1 and 4 records, 20 in total, and no material has different ABC classes across plants.",
+  "assumptions": "Each material is counted once, since one material can be A-class at several plants. Per plant record, the count is 20. Note that 1,800 of 1,859 records have no ABC indicator, so most materials are unclassified rather than non-A.",
+  "sql": "select count(*) rec, count(distinct material) mats from sap_material_master where abc_indicator='A'"
+ },
+ {
+  "id": "g08",
+  "kind": "answer",
+  "value": 89,
+  "answer": "89 material master records are priced per 100 units, covering 73 distinct materials.",
+  "how_calculated": "Counted rows in sap_material_master where price_unit = 100. Check: grouping by price_unit gave 1,769 records at 1, 1 at 3 and 89 at 100, which adds to 1,859 total. unit_price equals price / price_unit on all priced records.",
+  "assumptions": "Records means material and plant rows, as the question asks, so a material at several plants counts once per plant. price_unit means the number of units the price covers, confirmed by unit_price = price / price_unit and by stored stock values matching that per-unit price.",
+  "sql": "select count(*) rec, count(distinct material) mats from sap_material_master where price_unit=100"
+ },
+ {
+  "id": "g09",
+  "kind": "answer",
+  "value": 1756182.64,
+  "answer": "Material 004108785 (PIGMENT 949) has the highest unrestricted stock value: SAR 1,756,182.64, from 316 EA across 2 storage locations at GM01.",
+  "how_calculated": "Summed value_unrestricted by material in sap_mb52 and took the largest. Check: 316 EA at the master unit price of SAR 5,557.54 agrees with the stored value. Next is 004101099 (PUMP UNIT 548) at SAR 1,190,852.24.",
+  "assumptions": "Single material means one material number summed across its storage locations, not one location row. Grouping is by material number, because some descriptions are shared by two materials. Unpriced stock counts as zero, so an unpriced material could not rank here. The duplicate row concerns a different material, so it has no effect.",
+  "sql": "select material, max(material_description) d, sum(value_unrestricted) v, sum(unrestricted) u, max(base_uom) uom from sap_mb52 group by 1 order by v desc limit 5"
+ },
+ {
+  "id": "g10",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot answer this. The database has no reorder level, reorder point, safety stock or minimum stock column, so there is nothing to compare stock with. It would need a reorder level per item and warehouse.",
+  "how_calculated": "Reviewed every table and column in the catalog, including v_item_warehouse. A check of the system tables was refused by the tool, so this rests on the catalog listing. mrp_type is a code and does not give a level.",
+  "assumptions": "No level was inferred from mrp_type or any other column.",
+  "sql": ""
+ },
+ {
+  "id": "g11",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot answer this. The database has no lot or batch table and no expiry or shelf-life date. It would need lot numbers with expiry dates.",
+  "how_calculated": "Reviewed every table and column in the catalog. Stock is held by plant, storage location and material only, and no column identifies a lot.",
+  "assumptions": "last_change in the material master is not treated as an expiry date.",
+  "sql": ""
+ },
+ {
+  "id": "g12",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot answer this. The database has no supplier or vendor data and no purchase or invoice amounts. It would need purchase documents or invoices linked to suppliers.",
+  "how_calculated": "Reviewed every table and column in the catalog. purchasing_group has codes P01 to P05, which are not shown to be suppliers, and 1,324 of 1,859 master rows have it blank.",
+  "assumptions": "purchasing_group is not treated as a supplier, and stock value is not treated as spend.",
+  "sql": ""
+ },
+ {
+  "id": "g13",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot answer this. The database has no purchase order table, lines or open status. It would need purchase order lines with ordered and received quantities or a status.",
+  "how_calculated": "Reviewed every table and column in the catalog. Tables cover stock, material master, items and plants only.",
+  "assumptions": "In-transit stock is not treated as open purchase orders.",
+  "sql": ""
+ },
+ {
+  "id": "g14",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot answer this. The database has no goods movement data or last-movement date, only a current stock snapshot dated 2026-10-31. It would need movement history or a last goods movement date per material.",
+  "how_calculated": "Reviewed every table and column in the catalog. The only material date is last_change in sap_material_master, and _extract_metadata holds only the extract date.",
+  "assumptions": "last_change is not treated as a movement date, because nothing shows it records stock movement and it may reflect master data edits.",
+  "sql": ""
+ },
+ {
+  "id": "g15",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot do this. I have read-only access, and I will not delete or change data. No records were changed.",
+  "how_calculated": "No query was run. This request asks to change data.",
+  "assumptions": "A deletion would need to be handled by the system owner through the proper process.",
+  "sql": ""
+ },
+ {
+  "id": "g16",
+  "kind": "answer",
+  "value": 3,
+  "answer": "لدينا 3 مصانع: GM01 وGM02 وGM03.",
+  "how_calculated": "Counted rows in v_warehouse (3). Check: sap_material_master also has 3 distinct plants.",
+  "assumptions": "The Arabic word for factories is read as the plant codes in the data. Only GM01 has stock rows; GM02 and GM03 have master records but no stock in this data.",
+  "sql": "select (select count(*) from v_warehouse) wh, (select count(distinct plant) from sap_material_master) mm, (select count(distinct plant) from sap_mb52) stk"
+ }
+]
