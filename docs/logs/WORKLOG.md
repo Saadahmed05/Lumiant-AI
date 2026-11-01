@@ -207,3 +207,10 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Commands + results:** TEST_RUNS S05-1…S05-7. API 392 passed + 6 env-gated skips; web unit 55; e2e 23/23.
 - **Not done:** grounding limits (audit LA-10), the other audit findings, live model test (ISSUES #13). `pnpm audit` reports one dev-only moderate advisory, which CI will likely flag. Not committed (owner decides).
 - **Next:** `CODEBASE_AUDIT.md` §18.
+
+## 2026-11-01 · S05 · Sign-out data leak fixed (ISSUES #43)
+- **Goal:** owner asked to fix LA-39, where the next user in a tab could read the last user's Analyst answers.
+- **Done:** `resetAnalyst` at sign-out and session expiry clears the conversation, selections, dock, lens and pins. `bindAnalystUser` empties the Analyst when the signed-in user changes, even without a sign-out. Pins are stored per user, and pins saved without an owner are dropped. An answer still streaming cannot reach the next user.
+- **Decision:** pins are deleted at sign-out, not only hidden, because they hold cost values in browser storage. They were already described as a convenience, not a record.
+- **Commands + results:** TEST_RUNS S05-11…S05-13. Web unit 61; e2e 24/24.
+- **Not done:** a second tab left open keeps showing its page until its next request; every page has this, not only the Analyst. Not committed (owner decides).
