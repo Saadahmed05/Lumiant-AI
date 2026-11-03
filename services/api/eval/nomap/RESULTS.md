@@ -43,6 +43,40 @@
 - **Permissions and dialects:** limits are tested on DuckDB, and compiled but not run on PostgreSQL, SQL Server, Oracle, MySQL and Snowflake. No live database was used.
 - **Not built:** ERP knowledge packs, automatic reconciliation, and remembering corrections.
 
+## Second round, 2026-11-03: ERP scale and real engines
+
+**Scale.** Discovery used to profile every column up front: 0.9 s and about 600 tokens per table. At SAP's tens of thousands of tables, that is hours of profiling and millions of tokens. Now structure is read in one pass, small databases (up to 60 tables) are still profiled up front, and larger ones are profiled table by table when the agent describes them. The agent searches with `find_tables`.
+
+| Tables | Before | After |
+|---|---|---|
+| 200 × 40 columns | 187 s, about 120,000 tokens | 1 s, about 14,000 tokens |
+| 2,000 × 40 columns | not run | 16 s, under 100 tokens, plus search |
+
+**Crowded ERP test.** The SAP-style demo was hidden among 300 noise tables, a stale backup (`ZV_STOCK_BAK_2024`, quantities ×1.3) and a 200-row test copy. A fresh session (Claude Opus 5.5, tools only) answered **8 of 8 exactly**. It picked the live stock table and said why it rejected the backup, the test copy and the noise tables. The transcript shows it used only the question file, the database tool and its own answer file. Answers are in `results/crowded/`.
+
+**PostgreSQL, live.** `live_postgres.py` loads all three demos into PostgreSQL, keeping schemas and stored name case, and compares them with DuckDB. Before the fixes below, 15 of 16 Alpha answer-key queries failed. After them, all 37 match, catalogs, health checks and joins are identical, user limits hold, and a 2 s timeout stops a runaway query at 2.1 s. SQLite runs in the unit tests. SQL Server, Oracle, HANA and Snowflake are still checked by compiling only.
+
+**Fixed in this round:**
+- **Name case:** column and table names are now quoted in their stored case, because PostgreSQL lower-cases unquoted names, so `LABST` became `labst`.
+- **Percent signs:** a `%` in a LIKE pattern crashed the PostgreSQL driver. Queries now run on the driver's cursor without parameters.
+- **Timeouts:** they only worked on DuckDB, and a 2 s limit let a PostgreSQL query run 89 s. Queries are now cancelled through the driver, and PostgreSQL also gets a server-side `statement_timeout`.
+- **Statistics leak:** catalog statistics were gathered over all rows and shown to scoped users, so sample values listed other warehouses. Statistics are now removed for scoped tables and gathered again within the user's limits.
+- **Health checks** now run on every profiled table:
+  - duplicate rows, ignoring export row numbers
+  - total rows
+  - totals tables
+  - mixed currencies and units
+  - price-per-N units
+
+  They found every trap the first round's agent had to find by hand. A first version raised false alarms on `unit_price` and `business_unit`, and missed duplicates that differed only by row number. Both are fixed.
+- **SAP knowledge pack:** standard meanings for about 50 SAP fields and 15 tables, applied only when at least 6 SAP field names appear. Its rules appear only when their field exists. The meanings are SAP's standard descriptions, not yet confirmed on a real SAP sandbox.
+
+**Still open:**
+- **Profiling cost:** every column is counted in full, which will be costly on tables the size of MATDOC. Sampling is needed.
+- **Joins:** suggested only for databases of up to 60 tables, and single-column only.
+- **Search:** it matches words, so custom fields with no pack meaning are found by name only.
+- **Live AI:** the `ask` loop has still not run against a live model.
+
 ## Rerun
 
 ```bash

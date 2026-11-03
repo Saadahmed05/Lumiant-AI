@@ -143,6 +143,34 @@ def _scoped(table: Table, access: AccessPolicy, alias: str) -> exp.Expression:
     return query.subquery(alias=exp.to_identifier(alias, quoted=True))
 
 
+def _exact_case(root: Any, used: list[Table]) -> None:
+    """Quote real column and table names in their stored case.
+
+    The model writes LABST; a database that folds unquoted names (PostgreSQL to lower case, Oracle and Snowflake to
+    upper) would then miss a column stored as "LABST". Output aliases are left alone.
+    """
+    columns = {c.name.lower(): c.name for t in used for c in t.columns}
+    tables = {t.name.lower(): t.name for t in used}
+    aliases = {a.alias.lower() for a in root.find_all(exp.Alias) if a.alias}
+    aliases |= {a.alias.lower() for a in root.find_all(exp.TableAlias) if a.alias}
+
+    def exact(identifier: exp.Identifier, names: dict[str, str]) -> exp.Identifier:
+        name = names.get(identifier.name.lower())
+        return exp.to_identifier(name, quoted=True) if name else identifier
+
+    for column in root.find_all(exp.Column):
+        if column.args.get("db"):
+            column.set("db", None)
+        if isinstance(column.this, exp.Identifier) and column.name.lower() not in aliases:
+            column.set("this", exact(column.this, columns))
+        qualifier = column.args.get("table")
+        if isinstance(qualifier, exp.Identifier) and qualifier.name.lower() not in aliases:
+            column.set("table", exact(qualifier, tables))
+    for join in root.find_all(exp.Join):
+        using = join.args.get("using") or []
+        join.set("using", [exact(u, columns) if isinstance(u, exp.Identifier) else u for u in using])
+
+
 def prepare(sql: str, catalog: Catalog, access: AccessPolicy | None = None, *, max_rows: int = 1000) -> str:
     """Return SQL ready to run in the catalog's dialect, or raise UnsafeSqlError."""
     access = access or AccessPolicy()
@@ -159,10 +187,12 @@ def prepare(sql: str, catalog: Catalog, access: AccessPolicy | None = None, *, m
     if cte_names & known:
         # A CTE named after a real table would escape the rewrite below for every later reference to that name.
         raise UnsafeSqlError("A CTE may not reuse the name of a real table.")
+    used: list[Table] = []
     for node in list(root.find_all(exp.Table)):
         if not node.db and node.name.lower() in cte_names:
             continue
         table = _resolve(node, catalog)
+        used.append(table)
         key = table.qualified.lower()
         if key in access.denied_tables:
             raise UnsafeSqlError(f"Table {table.qualified} is not available to this user.")
@@ -171,9 +201,7 @@ def prepare(sql: str, catalog: Catalog, access: AccessPolicy | None = None, *, m
         else:
             node.set("this", exp.to_identifier(table.name, quoted=True))
             node.set("db", exp.to_identifier(table.schema, quoted=True) if table.schema else None)
-    for column in root.find_all(exp.Column):
-        if column.args.get("db"):
-            column.set("db", None)
+    _exact_case(root, used)
     if root.args.get("limit") is None and root.args.get("fetch") is None and isinstance(root, exp.Query):
         root = root.limit(max_rows + 1, copy=False)
     prepared = root.sql(dialect=catalog.dialect)

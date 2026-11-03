@@ -1,56 +1,67 @@
-"""Study a database from its own metadata and contents: no mapping file is read.
+"""What the agent knows about a database: tables, columns, their profiles and what was checked.
 
-Only low-cardinality columns (codes and statuses) keep sample values, so free text such as descriptions never
-reaches the model through the catalog.
+Discovery (discovery.py) fills this in. Large ERPs have tens of thousands of tables, so a table may be known by
+structure only until the agent asks about it; `render` then lists names and points the agent to `search`.
+Only low-cardinality columns (codes and statuses) keep sample values, so free text never reaches the model here.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
-from typing import Any
 
-import sqlalchemy as sa
-
-from lumiant.nomap.source import Source
-
-SYSTEM_SCHEMAS = {"information_schema", "pg_catalog", "sys", "system", "temp"}
-MAX_SAMPLED_DISTINCT = 30
-MAX_SAMPLES = 12
-MAX_JOIN_VALUES = 20_000
-MIN_JOIN_COVERAGE = 0.9
-SAMPLE_CHARS = 40
+RENDER_BUDGET = 60_000  # characters, about 15,000 tokens
 
 
 @dataclass(frozen=True)
 class Column:
     name: str
     type: str
-    rows_filled: int
-    distinct: int
+    rows_filled: int | None = None
+    distinct: int | None = None
     low: str | None = None
     high: str | None = None
     samples: tuple[str, ...] = ()
     comment: str | None = None
+    meaning: str | None = None  # from a knowledge pack: what this field means in a known system
 
     @property
     def is_text(self) -> bool:
         return any(t in self.type.upper() for t in ("CHAR", "TEXT", "STRING"))
+
+    @property
+    def is_bool(self) -> bool:
+        return "BOOL" in self.type.upper()
 
 
 @dataclass(frozen=True)
 class Table:
     schema: str | None
     name: str
-    rows: int
+    rows: int | None
     columns: tuple[Column, ...]
     comment: str | None = None
+    checks: tuple[str, ...] = ()  # data health findings, such as duplicate or total rows
+    meaning: str | None = None
 
     @property
     def qualified(self) -> str:
         return f"{self.schema}.{self.name}" if self.schema else self.name
 
+    @property
+    def profiled(self) -> bool:
+        return self.rows is not None
+
     def column(self, name: str) -> Column | None:
         return next((c for c in self.columns if c.name.lower() == name.lower()), None)
+
+    def structure_only(self) -> Table:
+        return replace(
+            self,
+            rows=None,
+            checks=(),
+            columns=tuple(Column(c.name, c.type, comment=c.comment, meaning=c.meaning) for c in self.columns),
+        )
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,8 @@ class Catalog:
     dialect: str
     tables: tuple[Table, ...]
     joins: tuple[Join, ...] = field(default=())
+    packs: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()  # rules from knowledge packs that apply to this database
 
     def find(self, name: str, schema: str | None = None) -> Table | None:
         """Resolve a table case-insensitively. A bare name that exists in two schemas resolves to nothing."""
@@ -75,132 +88,103 @@ class Catalog:
             hits = [t for t in hits if (t.schema or "").lower() == schema.lower()]
         return hits[0] if len(hits) == 1 else None
 
-    def without(self, hidden: dict[str, set[str]], denied: set[str]) -> Catalog:
-        """The catalog as one user may see it. Hidden columns and tables are removed, not just refused."""
+    def lookup(self, ref: str) -> Table | None:
+        return self.find(*reversed(ref.rsplit(".", 1)))
+
+    def with_table(self, table: Table) -> Catalog:
+        return replace(self, tables=tuple(table if t.qualified == table.qualified else t for t in self.tables))
+
+    def without(self, hidden: dict[str, set[str]], denied: set[str], scoped: frozenset[str] = frozenset()) -> Catalog:
+        """The catalog as one user may see it. Hidden columns and tables are removed, not just refused.
+
+        Tables in `scoped` lose their statistics, which were gathered over every row: they are profiled again
+        under the user's limits when asked about.
+        """
         tables = []
         for t in self.tables:
-            if t.qualified.lower() in denied:
+            key = t.qualified.lower()
+            if key in denied:
                 continue
-            drop = {c.lower() for c in hidden.get(t.qualified.lower(), set())}
-            tables.append(replace(t, columns=tuple(c for c in t.columns if c.name.lower() not in drop)))
+            drop = {c.lower() for c in hidden.get(key, set())}
+            t = replace(t, columns=tuple(c for c in t.columns if c.name.lower() not in drop))
+            tables.append(t.structure_only() if key in scoped else t)
         seen = {(t.qualified, c.name) for t in tables for c in t.columns}
         joins = tuple(
             j for j in self.joins if (j.from_table, j.from_column) in seen and (j.to_table, j.to_column) in seen
         )
-        return Catalog(self.dialect, tuple(tables), joins)
+        return replace(self, tables=tuple(tables), joins=joins)
 
-    def render(self) -> str:
-        lines = [f"SQL dialect: {self.dialect}"]
+    def search(self, text: str, limit: int = 15) -> list[Table]:
+        """Tables whose names, comments, columns or known meanings match the words in `text`."""
+        words = [w for w in re.findall(r"[a-z0-9_]+", text.lower()) if len(w) >= 2]
+        scored = []
         for t in self.tables:
-            lines.append(f"\nTABLE {t.qualified} ({t.rows} rows)" + (f" -- {t.comment}" if t.comment else ""))
-            for c in t.columns:
-                facts = [c.type, f"{c.distinct} distinct"]
-                if c.rows_filled < t.rows:
-                    facts.append(f"{t.rows - c.rows_filled} blank")
-                if c.low is not None:
-                    facts.append(f"range {c.low} to {c.high}")
-                if c.samples:
-                    facts.append("values " + ", ".join(c.samples))
-                if c.comment:
-                    facts.append(c.comment)
-                lines.append(f"  {c.name}: " + "; ".join(facts))
-        if self.joins:
-            lines.append("\nLIKELY JOINS (values tested; single-column only, so check composite keys yourself)")
-            lines += [
-                f"  {j.from_table}.{j.from_column} -> {j.to_table}.{j.to_column} ({j.coverage:.0%} of values found)"
-                for j in self.joins
+            score = 0
+            name = t.name.lower()
+            about = " ".join(filter(None, [t.comment, t.meaning])).lower()
+            columns = " ".join(c.name.lower() for c in t.columns)  # part words count: ERP fields join words
+            meanings = " ".join(filter(None, [c.meaning or c.comment for c in t.columns])).lower()
+            for w in words:
+                score += 5 * (w in name) + 3 * (w in columns) + 2 * (w in about) + (w in meanings)
+            if score:
+                scored.append((score, t.rows or 0, t.qualified, t))
+        scored.sort(key=lambda s: (-s[0], -s[1], s[2]))
+        return [s[3] for s in scored[:limit]]
+
+    def _header(self) -> list[str]:
+        lines = [f"SQL dialect: {self.dialect}"]
+        if self.packs:
+            lines.append(
+                f"Recognised system: {', '.join(self.packs)}. Field meanings marked 'known' are the system's standard ones; confirm them against the data."
+            )
+        lines += [f"Rule: {n}" for n in self.notes]
+        return lines
+
+    def render(self, budget: int = RENDER_BUDGET) -> str:
+        full = "\n".join([*self._header(), *(render_table(t) for t in self.tables), *self._render_joins()])
+        if len(full) <= budget:
+            return full
+        brief = [*self._header(), f"\n{len(self.tables)} tables. Profiles are loaded when you describe a table."]
+        brief += [f"{t.qualified}: " + ", ".join(c.name for c in t.columns) for t in self.tables]
+        text = "\n".join(brief)
+        if len(text) <= budget:
+            return text
+        return "\n".join(
+            [
+                *self._header(),
+                f"\n{len(self.tables)} tables: too many to list. Use find_tables with words from the question, then describe_table.",
             ]
-        return "\n".join(lines)
+        )
+
+    def _render_joins(self) -> list[str]:
+        if not self.joins:
+            return []
+        lines = ["\nLIKELY JOINS (values tested; single-column only, so check composite keys yourself)"]
+        lines += [
+            f"  {j.from_table}.{j.from_column} -> {j.to_table}.{j.to_column} ({j.coverage:.0%} of values found)"
+            for j in self.joins
+        ]
+        return lines
 
 
-def _short(value: Any) -> str:
-    return str(value)[:SAMPLE_CHARS]
-
-
-def _comment(insp: sa.Inspector, name: str, schema: str | None) -> str | None:
-    try:
-        return insp.get_table_comment(name, schema=schema).get("text")
-    except (NotImplementedError, sa.exc.SQLAlchemyError):
-        return None
-
-
-def _profile_column(conn: sa.Connection, table: sa.TableClause, info: Any) -> Column:
-    col: Any = sa.column(info["name"])
-    kind = str(info["type"])
-    is_bool = "BOOL" in kind.upper()
-    measures: list[Any] = [sa.func.count(col), sa.func.count(col.distinct())]
-    if not is_bool:
-        measures += [sa.func.min(col), sa.func.max(col)]
-    row = conn.execute(sa.select(*measures).select_from(table)).one()
-    low, high = (None, None) if is_bool else (row[2], row[3])
-    samples: tuple[str, ...] = ()
-    is_text = any(t in kind.upper() for t in ("CHAR", "TEXT", "STRING"))
-    if (is_text or is_bool) and 0 < row[1] <= MAX_SAMPLED_DISTINCT:
-        n = sa.func.count().label("n")
-        top = sa.select(col, n).select_from(table).where(col.is_not(None)).group_by(col).order_by(n.desc(), col)
-        samples = tuple(_short(r[0]) for r in conn.execute(top.limit(MAX_SAMPLES)))
-    show_range = low is not None and not is_text
-    return Column(
-        name=info["name"],
-        type=kind,
-        rows_filled=row[0],
-        distinct=row[1],
-        low=_short(low) if show_range else None,
-        high=_short(high) if show_range else None,
-        samples=samples,
-        comment=info.get("comment"),
-    )
-
-
-def _text_values(conn: sa.Connection, table: Table) -> dict[str, set[str]]:
-    target = sa.table(table.name, schema=table.schema)
-    values = {}
-    for c in table.columns:
-        if c.is_text and c.distinct > 1:
-            col: Any = sa.column(c.name)
-            query = sa.select(col).select_from(target).where(col.is_not(None)).distinct().limit(MAX_JOIN_VALUES)
-            values[c.name] = {str(r[0]) for r in conn.execute(query)}
-    return values
-
-
-def _joins(conn: sa.Connection, tables: list[Table]) -> list[Join]:
-    """Propose joins by testing values: the target must be unique and hold nearly all of the source values."""
-    values = {t.qualified: _text_values(conn, t) for t in tables}
-    found = []
-    for target in tables:
-        for key in target.columns:
-            if key.name not in values[target.qualified] or key.distinct != target.rows:
-                continue
-            keys = values[target.qualified][key.name]
-            for source in tables:
-                if source is target:
-                    continue
-                for name, vals in values[source.qualified].items():
-                    coverage = len(vals & keys) / len(vals)
-                    if coverage >= MIN_JOIN_COVERAGE:
-                        found.append(Join(source.qualified, name, target.qualified, key.name, coverage))
-    return found
-
-
-def discover(source: Source, *, exclude: frozenset[str] = frozenset()) -> Catalog:
-    tables: list[Table] = []
-    with source.engine.connect() as conn:
-        insp = sa.inspect(conn)
-        for schema in insp.get_schema_names():
-            # DuckDB reports schemas as catalog.schema, so check each part.
-            if SYSTEM_SCHEMAS & {part.lower().strip('"') for part in schema.split(".")}:
-                continue
-            for name in [*insp.get_table_names(schema=schema), *insp.get_view_names(schema=schema)]:
-                if name in exclude:
-                    continue
-                target = sa.table(name, schema=schema)
-                rows = conn.execute(sa.select(sa.func.count()).select_from(target)).scalar_one()
-                columns = tuple(_profile_column(conn, target, c) for c in insp.get_columns(name, schema=schema))
-                tables.append(Table(_visible_schema(schema, conn), name, rows, columns, _comment(insp, name, schema)))
-        joins = _joins(conn, tables)
-    return Catalog(source.dialect, tuple(tables), tuple(joins))
-
-
-def _visible_schema(schema: str, conn: sa.Connection) -> str | None:
-    short = schema.rsplit(".", 1)[-1].strip('"')
-    return None if short == conn.dialect.default_schema_name else short
+def render_table(t: Table) -> str:
+    head = f"\nTABLE {t.qualified} ({t.rows if t.profiled else 'not yet profiled'} rows)"
+    head += "".join(f" -- {x}" for x in (t.meaning, t.comment) if x)
+    lines = [head]
+    for c in t.columns:
+        facts = [c.type]
+        if c.distinct is not None:
+            facts.append(f"{c.distinct} distinct")
+        if t.rows is not None and c.rows_filled is not None and c.rows_filled < t.rows:
+            facts.append(f"{t.rows - c.rows_filled} blank")
+        if c.low is not None:
+            facts.append(f"range {c.low} to {c.high}")
+        if c.samples:
+            facts.append("values " + ", ".join(c.samples))
+        if c.meaning:
+            facts.append(f"known: {c.meaning}")
+        if c.comment:
+            facts.append(c.comment)
+        lines.append(f"  {c.name}: " + "; ".join(facts))
+    lines += [f"  CHECK: {x}" for x in t.checks]
+    return "\n".join(lines)

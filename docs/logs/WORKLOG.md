@@ -214,3 +214,16 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Result:** of 52 questions across 3 schemas, 49 right, 1 asked for clarification, 2 differ from the key by a disclosed SAR 882.20, none silently wrong. See `eval/nomap/RESULTS.md`.
 - **Found:** `_dataset_info` lists the planted problems, so evaluation copies drop it. A 0.05% scoring tolerance hid the 882.20 difference, so scoring is now exact. A Snowflake table function passed the guard, now refused. SQL Server single-number queries work on this path (compare audit LA-51).
 - **Not done:** live model loop (no API key), real SAP-sized schema, knowledge packs, reconciliation. ADR-0002 still stands: replacing it is the owner's decision. Not committed (owner decides).
+
+## 2026-11-03 · S05 · No-mapping agent at ERP scale and on real engines
+- **Goal:** owner's direction: the agent connects to different ERPs seamlessly and analyses data properly with minimal human setup. Keep solving the register and keep looking for new problems.
+- **Done (prototype only, `lumiant.nomap`):**
+  - On-demand discovery with table search, so 2,000 tables take 16 s instead of hours.
+  - Statistics for scoped users are gathered within their limits.
+  - Automatic health checks: duplicates, total rows, totals tables, mixed currencies and units, price per N units.
+  - SAP knowledge pack.
+  - Stored name case on every engine, `%` handling, and query timeouts on all drivers.
+  - Live PostgreSQL check (`eval/nomap/live_postgres.py`) and a crowded 313-table test (`eval/nomap/crowded.py`).
+- **Found and fixed:** LA-52 to LA-56 in `QUESTIONS_AND_LIMITATIONS.md`. A first version of the health checks gave false alarms and missed duplicates that differ only by a row number; both are fixed.
+- **Results:** PostgreSQL 37 of 37 answer-key queries match DuckDB; crowded ERP 8 of 8 exact with a real model; 453 API tests pass. See `services/api/eval/nomap/RESULTS.md`.
+- **Not done:** sampling for huge tables, joins on large databases, live SQL Server, Oracle, HANA or Snowflake, live `ask` loop, SAP pack confirmed on a real sandbox. Not committed (owner decides).

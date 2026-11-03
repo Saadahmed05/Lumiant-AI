@@ -12,7 +12,8 @@ import pytest
 import sqlglot
 
 from lumiant.nomap.agent import WITHHELD, AnthropicModel, NoMapAgent
-from lumiant.nomap.catalog import Catalog, Column, Table, discover
+from lumiant.nomap.catalog import Catalog, Column, Table
+from lumiant.nomap.discovery import discover
 from lumiant.nomap.safe_sql import AccessPolicy, UnsafeSqlError, prepare
 from lumiant.nomap.source import Source, SourceError
 

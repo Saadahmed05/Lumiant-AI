@@ -133,3 +133,7 @@ Every test, lint, type-check or audit run is recorded here: date, step, exact co
 | 2026-10-31 | S05-8 | `pytest tests/unit/test_nomap.py` · full `pytest -q` | **42 passed · 434 passed, 6 skipped** | no AI call |
 | 2026-10-31 | S05-9 | 9 query shapes and 3 dangerous queries through `prepare` for PostgreSQL, MySQL, Snowflake, SQL Server, Oracle (compile only) | **9/9 each, none escaped** | first run: Snowflake table function escaped, then refused |
 | 2026-10-31 | S05-10 | `eval/nomap/score.py`: 52 questions, 3 schemas, Claude Opus 5.5 in fresh isolated sessions | **46 exact, 3 right on reading, 1 clarify, 2 disclosed differences, 0 silently wrong** | `eval/nomap/RESULTS.md`; not the live `ask` loop |
+| 2026-11-03 | S05-14 | Wide DuckDB schemas, 200 and 2,000 tables of 40 columns, `discover` | **before: 200 tables 187 s, about 120,000 tokens · after: 200 tables 1 s, 2,000 tables 16 s** | LA-52 |
+| 2026-11-03 | S05-15 | `eval/nomap/live_postgres.py` on an embedded PostgreSQL | **before: 15 of 16 Alpha queries failed; timeout ignored (89 s) · after: 37 of 37 match, limits hold, timeout at 2.1 s** | LA-54 to LA-56 |
+| 2026-11-03 | S05-16 | `pytest` nomap tests · full `pytest -q` · ruff · mypy | **61 passed · 453 passed, 6 skipped · clean · clean** | |
+| 2026-11-03 | S05-17 | `eval/nomap/crowded.py`: 8 questions, 313 tables with decoys, Claude Opus 5.5 in an isolated session | **8 of 8 exact** | picked the live table over a stale backup and a test copy |

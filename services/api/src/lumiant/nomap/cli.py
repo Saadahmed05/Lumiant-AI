@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 from lumiant.nomap.agent import AnthropicModel, NoMapAgent
-from lumiant.nomap.catalog import Catalog, discover
+from lumiant.nomap.catalog import Catalog, render_table
+from lumiant.nomap.discovery import discover, profile_table
 from lumiant.nomap.safe_sql import AccessPolicy, UnsafeSqlError, prepare
 from lumiant.nomap.source import Source, SourceError
 
@@ -32,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--access", help="JSON file with one user's limits")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("catalog")
+    sub.add_parser("find").add_argument("words")
     sub.add_parser("describe").add_argument("table")
     sub.add_parser("sql").add_argument("query")
     sub.add_parser("ask").add_argument("question")
@@ -39,12 +41,18 @@ def main(argv: list[str] | None = None) -> int:
 
     source = Source.duckdb(Path(args.db))
     access = load_access(args.access)
-    catalog: Catalog = discover(source, exclude=HIDDEN_TABLES).without(access.hidden_columns, access.denied_tables)
+    catalog: Catalog = discover(source, exclude=HIDDEN_TABLES).without(
+        access.hidden_columns, access.denied_tables, frozenset(access.row_scope)
+    )
     if args.command == "catalog":
         print(catalog.render())
+    elif args.command == "find":
+        print("\n".join(f"{t.qualified}: " + ", ".join(c.name for c in t.columns) for t in catalog.search(args.words)))
     elif args.command == "describe":
-        table = catalog.find(*reversed(args.table.rsplit(".", 1)))
-        print(Catalog(catalog.dialect, (table,)).render() if table else f"Unknown table: {args.table}")
+        table = catalog.lookup(args.table)
+        if table is not None and not table.profiled:
+            table = profile_table(source, catalog, table, access)
+        print(render_table(table) if table else f"Unknown table: {args.table}")
     elif args.command == "sql":
         try:
             result = source.execute(prepare(args.query, catalog, access, max_rows=source.max_rows))
