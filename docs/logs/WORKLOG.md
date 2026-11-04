@@ -227,3 +227,21 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Found and fixed:** LA-52 to LA-56 in `QUESTIONS_AND_LIMITATIONS.md`. A first version of the health checks gave false alarms and missed duplicates that differ only by a row number; both are fixed.
 - **Results:** PostgreSQL 37 of 37 answer-key queries match DuckDB; crowded ERP 8 of 8 exact with a real model; 453 API tests pass. See `services/api/eval/nomap/RESULTS.md`.
 - **Not done:** sampling for huge tables, joins on large databases, live SQL Server, Oracle, HANA or Snowflake, live `ask` loop, SAP pack confirmed on a real sandbox. Not committed (owner decides).
+
+## 2026-11-04 · S05 · No-mapping agent on a real ERP (Odoo 18)
+- **Goal:** owner asked to test the agent across different systems and to report where it works and where it falls short.
+- **Done:**
+  - Installed official Odoo 18 (stock, purchase, sale_stock, demo data) on the embedded PostgreSQL.
+  - Computed the answer key with Odoo's own ORM.
+  - A real AI session answered 12 questions through a read-only database login.
+  - `--url` option on the CLI; read-only login refuses delete, update and create.
+- **Result:** 8 exact, 2 defensible and stated (27 products vs 33 variants; 4 confirmed orders with nothing received vs 1 with an open receipt), 2 clarifying questions, 0 silently wrong.
+- **Found and fixed:** LA-59 to LA-63 in `QUESTIONS_AND_LIMITATIONS.md`:
+  - JSON columns broke profiling.
+  - Odoo's mirror records were not flagged; there is now a cancel-out check.
+  - Search under-weighted known meanings.
+  - The CLI command name did not match the catalog text.
+  - Added an Odoo knowledge pack.
+- **Also found:** Windows' 260-character path limit silently dropped 1,299 Odoo files when extracted in a deep folder (LA-64). The Odoo session's transcript file was empty, so its isolation is self-reported.
+- **Documents:** `reports/Lumiant System Test Report.pdf` (new) and `reports/Lumiant Pending Work.pdf` (redone).
+- **Not done:** Odoo rerun with its pack; real SAP, Oracle Fusion, Dynamics; live SQL Server or Oracle. Not committed (owner decides).

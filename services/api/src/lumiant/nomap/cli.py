@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,24 +30,29 @@ def load_access(path: str | None) -> AccessPolicy:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lumiant-nomap")
-    parser.add_argument("--db", required=True, help="Path to a DuckDB database")
+    target = parser.add_mutually_exclusive_group()
+    target.add_argument("--db", help="Path to a DuckDB database")
+    # A URL can hold a password, so it may also come from LUMIANT_NOMAP_URL instead of the command line.
+    target.add_argument("--url", default=os.environ.get("LUMIANT_NOMAP_URL"), help="SQLAlchemy URL of any database")
     parser.add_argument("--access", help="JSON file with one user's limits")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("catalog")
-    sub.add_parser("find").add_argument("words")
+    sub.add_parser("find", aliases=["find_tables"]).add_argument("words")
     sub.add_parser("describe").add_argument("table")
     sub.add_parser("sql").add_argument("query")
     sub.add_parser("ask").add_argument("question")
     args = parser.parse_args(argv)
+    if not args.db and not args.url:
+        parser.error("give --db, --url, or set LUMIANT_NOMAP_URL")
 
-    source = Source.duckdb(Path(args.db))
+    source = Source.duckdb(Path(args.db)) if args.db else Source(args.url)
     access = load_access(args.access)
     catalog: Catalog = discover(source, exclude=HIDDEN_TABLES).without(
         access.hidden_columns, access.denied_tables, frozenset(access.row_scope)
     )
     if args.command == "catalog":
         print(catalog.render())
-    elif args.command == "find":
+    elif args.command in ("find", "find_tables"):
         print("\n".join(f"{t.qualified}: " + ", ".join(c.name for c in t.columns) for t in catalog.search(args.words)))
     elif args.command == "describe":
         table = catalog.lookup(args.table)

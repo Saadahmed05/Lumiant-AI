@@ -77,6 +77,31 @@
 - **Search:** it matches words, so custom fields with no pack meaning are found by name only.
 - **Live AI:** the `ask` loop has still not run against a live model.
 
+## Third round, 2026-11-04: a real ERP (Odoo 18)
+
+**Setup.** Official Odoo 18 with demo data (Inventory, Purchase, Sales) on PostgreSQL. The agent connected through a read-only login; the database refuses writes on its own. The answer key was computed by Odoo's own engine (`odoo/run_answer_key.py`), not by hand-written SQL. A fresh AI session (Claude Opus 5.5) was not told which ERP it was.
+
+**Result: 8 exact, 2 defensible and stated, 2 clarifying questions, 0 silently wrong** (`odoo/score.py`).
+- **Defensible differences:**
+  - It counted 27 storable products against 33 variants.
+  - It counted 4 confirmed purchase orders with nothing received, against 1 with an open receipt; the demo created no receipts for three of them.
+  - It stated its choice both times.
+- **Clarifying questions:** "late deliveries" had three valid definitions in the data, and reordering rules differ between on-hand and forecast.
+- **Traps it avoided:**
+  - Mirror stock in virtual locations, which makes a naive total exactly 0.
+  - Costs stored as JSON per company.
+  - Valuation entries that are all zero.
+  - Two companies.
+
+**Fixed after this round:**
+- JSON columns broke profiling.
+- No check for rows that cancel out.
+- Search ranking.
+- The command name.
+- No Odoo knowledge pack, which has not yet been measured with a rerun.
+
+**Caveat:** the session's transcript file was empty, so its isolation is self-reported.
+
 ## Rerun
 
 ```bash

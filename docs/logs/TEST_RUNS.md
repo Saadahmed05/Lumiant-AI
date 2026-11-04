@@ -137,3 +137,6 @@ Every test, lint, type-check or audit run is recorded here: date, step, exact co
 | 2026-11-03 | S05-15 | `eval/nomap/live_postgres.py` on an embedded PostgreSQL | **before: 15 of 16 Alpha queries failed; timeout ignored (89 s) · after: 37 of 37 match, limits hold, timeout at 2.1 s** | LA-54 to LA-56 |
 | 2026-11-03 | S05-16 | `pytest` nomap tests · full `pytest -q` · ruff · mypy | **61 passed · 453 passed, 6 skipped · clean · clean** | |
 | 2026-11-03 | S05-17 | `eval/nomap/crowded.py`: 8 questions, 313 tables with decoys, Claude Opus 5.5 in an isolated session | **8 of 8 exact** | picked the live table over a stale backup and a test copy |
+| 2026-11-04 | S05-18 | Odoo 18 official build, `python -m odoo -i stock,purchase,sale_stock` on embedded PostgreSQL | **first try failed:** 1,299 files over the Windows path limit were skipped; **short path: installed** | LA-64 |
+| 2026-11-04 | S05-19 | Real AI session on Odoo 18 through a read-only login, 12 questions, key from Odoo's ORM (`eval/nomap/odoo`) | **8 exact, 2 defensible and stated, 2 clarify, 0 silently wrong** | transcript empty: isolation self-reported |
+| 2026-11-04 | S05-20 | nomap tests · full `pytest -q` · ruff · mypy | **65 passed · 457 passed, 6 skipped · clean · clean** | +4 Odoo tests |

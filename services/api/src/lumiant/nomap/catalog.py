@@ -11,6 +11,8 @@ import re
 from dataclasses import dataclass, field, replace
 
 RENDER_BUDGET = 60_000  # characters, about 15,000 tokens
+NUMBER_TYPES = ("INT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "REAL", "MONEY", "NUMBER")
+UNCOMPARABLE_TYPES = ("JSON", "XML", "BYTEA", "BLOB", "BINARY", "ARRAY", "GEOMETRY", "IMAGE", "TSVECTOR", "NULL")
 
 
 @dataclass(frozen=True)
@@ -32,6 +34,20 @@ class Column:
     @property
     def is_bool(self) -> bool:
         return "BOOL" in self.type.upper()
+
+    @property
+    def is_comparable(self) -> bool:
+        """Has equality, so DISTINCT works. JSON (Odoo keeps names per language in it), XML and binary do not."""
+        return not any(t in self.type.upper() for t in UNCOMPARABLE_TYPES)
+
+    @property
+    def is_number(self) -> bool:
+        return not self.is_bool and any(t in self.type.upper() for t in NUMBER_TYPES)
+
+    @property
+    def is_ordered(self) -> bool:
+        """MIN and MAX make sense: numbers, dates and times."""
+        return self.is_number or any(t in self.type.upper() for t in ("DATE", "TIME"))
 
 
 @dataclass(frozen=True)
@@ -125,7 +141,8 @@ class Catalog:
             columns = " ".join(c.name.lower() for c in t.columns)  # part words count: ERP fields join words
             meanings = " ".join(filter(None, [c.meaning or c.comment for c in t.columns])).lower()
             for w in words:
-                score += 5 * (w in name) + 3 * (w in columns) + 2 * (w in about) + (w in meanings)
+                # Curated meanings from a pack and the database's own table labels count as much as the name.
+                score += 5 * (w in name) + 3 * (w in columns) + 5 * (w in about) + (w in meanings)
             if score:
                 scored.append((score, t.rows or 0, t.qualified, t))
         scored.sort(key=lambda s: (-s[0], -s[1], s[2]))

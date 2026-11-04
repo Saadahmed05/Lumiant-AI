@@ -27,6 +27,7 @@ MAX_JOIN_VALUES = 20_000
 MIN_JOIN_COVERAGE = 0.9
 SAMPLE_CHARS = 40
 DUPLICATE_CHECK_MAX_ROWS = 2_000_000
+CANCEL_SHARE = 0.01  # a net under 1% of the gross means positive and negative rows cancel
 CURRENCY = re.compile(r"(?:^|_)(?:curr|currency|currency_code|waers|waehr)$", re.I)
 UNIT = re.compile(r"(?:^|_)(?:uom|meins|unit|units|einheit)$", re.I)
 NOT_UNIT = re.compile(r"business|org|price|cost|value", re.I)
@@ -60,20 +61,25 @@ def profile_table(source: Source, catalog: Catalog, table: Table, access: Access
     access = access or AccessPolicy()
     measures: list[exp.Expression] = [exp.Count(this=exp.Star())]
     for c in table.columns:
-        measures += [exp.Count(this=_col(c.name)), exp.Count(this=exp.Distinct(expressions=[_col(c.name)]))]
-        if not c.is_text and not c.is_bool:
+        measures.append(exp.Count(this=_col(c.name)))
+        if c.is_comparable:
+            measures.append(exp.Count(this=exp.Distinct(expressions=[_col(c.name)])))
+        if c.is_ordered:
             measures += [exp.Min(this=_col(c.name)), exp.Max(this=_col(c.name))]
     stats = _run(source, catalog, access, exp.select(*measures).from_(_ref(table)))[0]
     rows, i, columns = int(stats[0]), 1, []
     for c in table.columns:
-        filled, distinct = int(stats[i]), int(stats[i + 1])
-        i += 2
+        filled, distinct = int(stats[i]), None
+        i += 1
+        if c.is_comparable:
+            distinct = int(stats[i])
+            i += 1
         low = high = None
-        if not c.is_text and not c.is_bool:
+        if c.is_ordered:
             low, high = stats[i], stats[i + 1]
             i += 2
         samples: tuple[str, ...] = ()
-        if (c.is_text or c.is_bool) and 0 < distinct <= MAX_SAMPLED_DISTINCT:
+        if (c.is_text or c.is_bool) and distinct is not None and 0 < distinct <= MAX_SAMPLED_DISTINCT:
             n = exp.alias_(exp.Count(this=exp.Star()), "n")
             top = (
                 exp.select(_col(c.name), n)
@@ -106,9 +112,9 @@ def _health(source: Source, catalog: Catalog, access: AccessPolicy, t: Table) ->
     row_ids = [
         c.name
         for c in t.columns
-        if not c.is_text and (ROW_NUMBER.search(c.name) or (c.distinct == rows and ROW_ID.search(c.name)))
+        if c.is_number and (ROW_NUMBER.search(c.name) or (c.distinct == rows and ROW_ID.search(c.name)))
     ]
-    compared = [c.name for c in t.columns if c.name not in row_ids]
+    compared = [c.name for c in t.columns if c.name not in row_ids and c.is_comparable]
     if rows and compared and rows <= DUPLICATE_CHECK_MAX_ROWS:
         try:
             distinct_rows = exp.select(*[_col(n) for n in compared]).from_(_ref(t)).distinct().subquery("d")
@@ -122,7 +128,7 @@ def _health(source: Source, catalog: Catalog, access: AccessPolicy, t: Table) ->
             found.append("duplicate check could not run on this table")
     # Total rows usually blank the key columns but keep a unit or currency code.
     texts = [c for c in t.columns if c.is_text and not UNIT.search(c.name) and not CURRENCY.search(c.name)]
-    numbers = [c for c in t.columns if not c.is_text and not c.is_bool and c.name not in row_ids]
+    numbers = [c for c in t.columns if c.is_number and c.name not in row_ids]
     if rows and len(texts) >= 2 and numbers:
         blank = exp.and_(*[exp.Is(this=_col(c.name), expression=exp.Null()) for c in texts])
         filled = exp.or_(*[exp.Not(this=exp.Is(this=_col(c.name), expression=exp.Null())) for c in numbers])
@@ -139,6 +145,22 @@ def _health(source: Source, catalog: Catalog, access: AccessPolicy, t: Table) ->
                 )
         except (UnsafeSqlError, SourceError):
             found.append("total-row check could not run on this table")
+    # Double-entry and mirror records (Odoo's virtual locations, debit/credit pairs) make a column add up to zero.
+    signed = [c for c in numbers if c.low is not None and _number(c.low) < 0 < _number(c.high or "0")]
+    for c in signed:
+        try:
+            net, gross = _run(
+                source,
+                catalog,
+                access,
+                exp.select(exp.Sum(this=_col(c.name)), exp.Sum(this=exp.Abs(this=_col(c.name)))).from_(_ref(t)),
+            )[0]
+            if gross and abs(float(net)) <= CANCEL_SHARE * float(gross):
+                found.append(
+                    f"{c.name} adds up to about zero over all rows ({float(net):g} net of {float(gross):g}): positive and negative rows cancel, so they are likely mirror or paired entries. Filter to the records that matter before adding"
+                )
+        except (UnsafeSqlError, SourceError):
+            found.append(f"cancel-out check could not run on {c.name}")
     if TOTAL_NAME.search(t.name):
         found.append("the name suggests a totals or summary table: never add it to the detail table it summarises")
     for c in t.columns:

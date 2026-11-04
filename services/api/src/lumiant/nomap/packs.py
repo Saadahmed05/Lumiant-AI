@@ -94,7 +94,33 @@ SAP_NOTES = {
 }
 
 
-def apply_packs(catalog: Catalog) -> Catalog:
+# Odoo is recognised by its table names; it already labels every column in the database, so the pack adds rules.
+# Checked against a real Odoo 18 demo database (stock, purchase, sale_stock).
+ODOO_SIGNATURE = {"stock_quant", "stock_location", "product_template", "product_product", "res_company", "ir_model"}
+ODOO_TABLES = {
+    "stock_quant": "stock on hand per product, location and lot",
+    "stock_location": "locations; only usage 'internal' is stock in a warehouse",
+    "product_template": "products as users see them",
+    "product_product": "product variants of a product_template",
+    "stock_move": "planned and done stock movements",
+    "stock_picking": "transfers: receipts, deliveries and internal moves",
+    "stock_warehouse_orderpoint": "reordering rules (minimum and maximum quantities)",
+    "stock_valuation_layer": "accounting valuation entries; empty or zero when valuation is not automated",
+    "purchase_order": "purchase orders and quotations (RFQs)",
+    "sale_order": "sales orders and quotations",
+    "res_company": "companies; data may belong to several",
+}
+ODOO_NOTES = (
+    "stock_quant also holds mirror quantities in virtual locations (inventory adjustment, customers, suppliers, production, transit), so totals over every location cancel out. Join stock_location and count only usage = 'internal' for stock on hand.",
+    "Names are JSON keyed by language: use name->>'en_US'.",
+    'product_product.standard_price (cost) is JSON keyed by company id, such as {"1": 70.0}: read the company\'s key.',
+    "There may be several companies: say which company_id you count, or report each.",
+    "product_template is the product as users see it; product_product holds its variants, so counts differ.",
+    "purchase_order.receipt_status is empty when no receipt was created, even if goods are still to arrive: check order lines too.",
+)
+
+
+def _apply_sap(catalog: Catalog) -> Catalog:
     present = {c.name.upper() for t in catalog.tables for c in t.columns} & SAP_FIELDS.keys()
     if len(present) < MIN_FIELDS:
         return catalog
@@ -104,3 +130,15 @@ def apply_packs(catalog: Catalog) -> Catalog:
         tables.append(replace(t, columns=columns, meaning=SAP_TABLES.get(t.name.upper(), t.meaning)))
     notes = tuple(note for name, note in SAP_NOTES.items() if name in present)
     return replace(catalog, tables=tuple(tables), packs=(*catalog.packs, "SAP"), notes=(*catalog.notes, *notes))
+
+
+def _apply_odoo(catalog: Catalog) -> Catalog:
+    names = {t.name.lower() for t in catalog.tables}
+    if not names >= ODOO_SIGNATURE:
+        return catalog
+    tables = tuple(replace(t, meaning=ODOO_TABLES.get(t.name.lower(), t.meaning)) for t in catalog.tables)
+    return replace(catalog, tables=tables, packs=(*catalog.packs, "Odoo"), notes=(*catalog.notes, *ODOO_NOTES))
+
+
+def apply_packs(catalog: Catalog) -> Catalog:
+    return _apply_odoo(_apply_sap(catalog))
