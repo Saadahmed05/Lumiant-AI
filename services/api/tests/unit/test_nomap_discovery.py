@@ -94,7 +94,7 @@ def test_catalog_text_stays_within_budget(wide: Any) -> None:
 
 def test_sap_pack_names_standard_fields(alpha: Any) -> None:
     _, catalog = alpha
-    assert catalog.packs == ("SAP",)
+    assert catalog.packs == ("SAP (unconfirmed on a real SAP system)",)
     assert "unrestricted" in (catalog.find("ZV_STOCK").column("LABST").meaning or "")  # type: ignore[union-attr]
     assert catalog.search("unrestricted stock")[0].name == "ZV_STOCK"
     assert any("separate quantities" in n for n in catalog.notes)

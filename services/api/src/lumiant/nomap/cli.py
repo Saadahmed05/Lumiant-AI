@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("catalog")
     sub.add_parser("find", aliases=["find_tables"]).add_argument("words")
-    sub.add_parser("describe").add_argument("table")
+    sub.add_parser("describe", aliases=["describe_table"]).add_argument("table")
     sub.add_parser("sql").add_argument("query")
     sub.add_parser("ask").add_argument("question")
     args = parser.parse_args(argv)
@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
         print(catalog.render())
     elif args.command in ("find", "find_tables"):
         print("\n".join(f"{t.qualified}: " + ", ".join(c.name for c in t.columns) for t in catalog.search(args.words)))
-    elif args.command == "describe":
+    elif args.command in ("describe", "describe_table"):
         table = catalog.lookup(args.table)
         if table is not None and not table.profiled:
             table = profile_table(source, catalog, table, access)

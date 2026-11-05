@@ -7,7 +7,7 @@ standard data dictionary descriptions; they must be confirmed on a real SAP sand
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from lumiant.nomap.catalog import Catalog
 
@@ -112,12 +112,97 @@ ODOO_TABLES = {
 }
 ODOO_NOTES = (
     "stock_quant also holds mirror quantities in virtual locations (inventory adjustment, customers, suppliers, production, transit), so totals over every location cancel out. Join stock_location and count only usage = 'internal' for stock on hand.",
-    "Names are JSON keyed by language: use name->>'en_US'.",
+    "Translatable names, such as product_template.name and uom_uom.name, are JSON keyed by language: use name->>'en_US'. Check the column type first: other names, such as stock_location.name, are plain text.",
     'product_product.standard_price (cost) is JSON keyed by company id, such as {"1": 70.0}: read the company\'s key.',
     "There may be several companies: say which company_id you count, or report each.",
     "product_template is the product as users see it; product_product holds its variants, so counts differ.",
     "purchase_order.receipt_status is empty when no receipt was created, even if goods are still to arrive: check order lines too.",
 )
+
+
+@dataclass(frozen=True)
+class TablePack:
+    """A system recognised by its standard table names, with what those tables mean and the rules that apply."""
+
+    name: str
+    signature: frozenset[str]  # every one of these canonical table names must exist
+    tables: dict[str, str]
+    notes: tuple[str, ...]
+
+
+def _canonical(table: str) -> str:
+    """Business Central stores tables as 'Company$Item Ledger Entry$<app id>'; the part between '$' is the table."""
+    parts = table.split("$")
+    return (parts[1] if len(parts) >= 2 else table).lower()
+
+
+# These packs follow each vendor's documented standard tables. None has been checked on a real customer system yet,
+# so the agent is told they are unconfirmed; its own checks and the data decide.
+ORACLE_EBS = TablePack(
+    "Oracle E-Business Suite (unconfirmed)",
+    frozenset({"mtl_system_items_b", "mtl_onhand_quantities_detail", "mtl_parameters", "mtl_secondary_inventories"}),
+    {
+        "mtl_system_items_b": "items per inventory organization (SEGMENT1 is usually the item code)",
+        "mtl_onhand_quantities_detail": "stock on hand by item, organization, subinventory, locator and lot",
+        "mtl_parameters": "inventory organizations, with their costing method",
+        "mtl_secondary_inventories": "subinventories; ASSET_INVENTORY 1 is valued stock, 2 is expense",
+        "mtl_material_transactions": "inventory transactions; quantities are negative for issues",
+        "mtl_lot_numbers": "lots, with expiration dates",
+        "cst_item_costs": "item costs per organization and cost type",
+        "po_headers_all": "purchase order headers for every operating unit",
+        "po_lines_all": "purchase order lines",
+        "po_line_locations_all": "purchase order shipments, with quantities ordered and received",
+    },
+    (
+        "On-hand quantity is SUM(PRIMARY_TRANSACTION_QUANTITY) in mtl_onhand_quantities_detail, in the item's primary unit.",
+        "Items exist once per organization: join on both INVENTORY_ITEM_ID and ORGANIZATION_ID.",
+        "Subinventories with ASSET_INVENTORY = 2 are expense stock and carry no inventory value.",
+        "Tables ending in _ALL hold every operating unit: filter ORG_ID or report each.",
+        "cst_item_costs has a row per cost type: COST_TYPE_ID 1 is the frozen standard cost; pick the organization's costing method from mtl_parameters.",
+    ),
+)
+DYNAMICS_FO = TablePack(
+    "Microsoft Dynamics 365 Finance and Operations (unconfirmed)",
+    frozenset({"inventsum", "inventdim", "inventtable", "inventtrans"}),
+    {
+        "inventsum": "on-hand summary per item and inventory dimension",
+        "inventdim": "inventory dimensions: site, warehouse, location, batch and more, behind each INVENTDIMID",
+        "inventtable": "released items",
+        "inventtrans": "inventory transactions with receipt and issue status",
+        "purchtable": "purchase order headers",
+        "purchline": "purchase order lines",
+    },
+    (
+        "Every table has DATAAREAID, the legal entity: filter it or report each.",
+        "inventsum is per INVENTDIMID: join inventdim to get warehouse (INVENTLOCATIONID), site and batch.",
+        "inventsum keeps closed rows (CLOSED = 1); physical on-hand is PHYSICALINVENT, and value is split into posted and physical columns: say which you use.",
+        "Exported copies (Synapse Link, Fabric) may show table and column names in lower case.",
+    ),
+)
+BUSINESS_CENTRAL = TablePack(
+    "Microsoft Dynamics 365 Business Central (unconfirmed)",
+    frozenset({"item", "item ledger entry", "value entry", "location"}),
+    {
+        "item": "items",
+        "item ledger entry": "stock movements per item and location; open entries hold the remaining quantity",
+        "value entry": "costs of each movement, actual and expected",
+        "location": "locations (warehouses)",
+    },
+    (
+        "Table names include the company, like 'CRONUS$Item Ledger Entry$<id>': each company has its own tables.",
+        "On-hand quantity per item and location is SUM(Quantity) of Item Ledger Entry.",
+        "Inventory value is the sum of Cost Amount (Actual) and Cost Amount (Expected) in Value Entry: say whether expected cost is included.",
+    ),
+)
+TABLE_PACKS = (ORACLE_EBS, DYNAMICS_FO, BUSINESS_CENTRAL)
+
+
+def _apply_table_pack(catalog: Catalog, pack: TablePack) -> Catalog:
+    names = {_canonical(t.name) for t in catalog.tables}
+    if not names >= pack.signature:
+        return catalog
+    tables = tuple(replace(t, meaning=pack.tables.get(_canonical(t.name), t.meaning)) for t in catalog.tables)
+    return replace(catalog, tables=tables, packs=(*catalog.packs, pack.name), notes=(*catalog.notes, *pack.notes))
 
 
 def _apply_sap(catalog: Catalog) -> Catalog:
@@ -129,7 +214,12 @@ def _apply_sap(catalog: Catalog) -> Catalog:
         columns = tuple(replace(c, meaning=SAP_FIELDS.get(c.name.upper(), c.meaning)) for c in t.columns)
         tables.append(replace(t, columns=columns, meaning=SAP_TABLES.get(t.name.upper(), t.meaning)))
     notes = tuple(note for name, note in SAP_NOTES.items() if name in present)
-    return replace(catalog, tables=tuple(tables), packs=(*catalog.packs, "SAP"), notes=(*catalog.notes, *notes))
+    return replace(
+        catalog,
+        tables=tuple(tables),
+        packs=(*catalog.packs, "SAP (unconfirmed on a real SAP system)"),
+        notes=(*catalog.notes, *notes),
+    )
 
 
 def _apply_odoo(catalog: Catalog) -> Catalog:
@@ -141,4 +231,7 @@ def _apply_odoo(catalog: Catalog) -> Catalog:
 
 
 def apply_packs(catalog: Catalog) -> Catalog:
-    return _apply_odoo(_apply_sap(catalog))
+    catalog = _apply_odoo(_apply_sap(catalog))
+    for pack in TABLE_PACKS:
+        catalog = _apply_table_pack(catalog, pack)
+    return catalog
