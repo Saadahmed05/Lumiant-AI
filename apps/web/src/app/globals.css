@@ -34,8 +34,6 @@
   --signal: #ffa155;
   --signal-soft: #2e1d10;
   --ok: #5fd38d;
-  --tape: #f2c230;
-  --tape-ink: #1b1b1b;
 
   /* glass + elevation: light from above (inner top highlight), depth from soft drop shadows */
   --glass: rgb(13 17 22 / 0.72);
@@ -274,20 +272,6 @@ kbd,
   text-transform: uppercase;
   font-weight: 600;
   color: var(--ink-3);
-}
-
-/* Hazard tape: synthetic data must never be mistaken for customer data. */
-.tape {
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--tape) 0 10px,
-    var(--tape-ink) 10px 20px
-  );
-}
-
-.tape-label {
-  background: var(--tape);
-  color: var(--tape-ink);
 }
 
 /*
