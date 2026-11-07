@@ -1,3 +1,6 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+overrides:
+  # GHSA-g3hv-75wg-m249: minimatch before 11.0.1 can be made to use excessive CPU. Only lint tools pull it in.
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
