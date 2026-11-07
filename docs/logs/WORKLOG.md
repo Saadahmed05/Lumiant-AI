@@ -199,3 +199,11 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Found and fixed:** explorer debounced search could still wipe a just-chosen filter when `router.replace` had not committed yet (ISSUES #12 regression exposed by slower row rendering; now tracks the pending URL). Dev server served stale CSS from `.next/dev` (same class as ISSUES #33).
 - **Commands + results:** TEST_RUNS S04-1…S04-9. Final: API 375 passed + 6 env-gated skips; ruff/format/mypy clean; web lint/tsc clean, unit 50; e2e 23/23; pip-audit and pnpm audit 0 findings.
 - **Not done:** live Gemini call (needs the owner's key in `.env` and an approved synthetic tenant; ISSUES #13); D4 rest (virtualized inventory grid, Material 360, Risks/Costs/Reports/Admin restyle, Admin › Data sources); axe run.
+
+## 2026-10-31 · S05 · Audit, then three answer-integrity fixes
+- **Goal:** owner asked for a read-only enterprise audit of `647ef7b`, then asked to fix the three defects that show wrong figures.
+- **Done:** 14 audit documents in `docs/` (start at `CODEBASE_AUDIT.md`). Fixed ISSUES #40 expiry counts (counted in the source, not from capped rows), #41 failed insight rules (`failed` + `complete`, never cached, Overview alert, no all-clear in chat), #42 unverified model text (withheld when no tool ran, shown as a failure in the UI, audited as `:blocked`).
+- **Decisions:** the withholding applies only to model-authored text; built-in clarifications carry numbers from code and are unaffected. With no tool result, a figure the user typed is not evidence, so a model cannot confirm it. Corrected `test_expiring_lots`, which asserted the defect; it now compares with independent SQL.
+- **Commands + results:** TEST_RUNS S05-1…S05-7. API 392 passed + 6 env-gated skips; web unit 55; e2e 23/23.
+- **Not done:** grounding limits (audit LA-10), the other audit findings, live model test (ISSUES #13). `pnpm audit` reports one dev-only moderate advisory, which CI will likely flag. Not committed (owner decides).
+- **Next:** `CODEBASE_AUDIT.md` §18.

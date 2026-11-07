@@ -27,6 +27,10 @@ from lumiant.query.service import QueryService
 log = logging.getLogger("lumiant.agent")
 MAX_TOOL_CALLS = 4
 MAX_QUESTION_CHARS = 500
+WITHHELD_ANSWER = (
+    "I couldn't verify the figures in that answer against your data, so I have not shown it. "
+    "Try one of the questions below, or ask for a specific analysis."
+)
 Event = dict[str, Any]
 
 TOOL_LABELS = {
@@ -240,13 +244,28 @@ class AgentService:
                 else:
                     answer, grounding = prose, {"passed": True, "ungrounded": [], "source": "model"}
             yield done(_step("compose", "Writing the answer", "done"))
-        bad_template = ungrounded_numbers(answer, evidence)
-        if bad_template:  # should be impossible; never ship an ungrounded number
-            log.error("template_ungrounded", extra={"count": len(bad_template)})
-            grounding = {"passed": False, "ungrounded": bad_template, "source": grounding["source"]}
+        blocked = False
         if outputs:
+            bad_template = ungrounded_numbers(answer, evidence)
+            if bad_template:  # should be impossible: templates only hold result values, so flag it for the user
+                log.error("template_ungrounded", extra={"count": len(bad_template)})
+                grounding = {"passed": False, "ungrounded": bad_template, "source": grounding["source"]}
             verdict = "every number traced to the results" if grounding["passed"] else "ungrounded numbers found"
-            yield done(_step("ground", "Checking every number against the results", "done", detail=verdict))
+            status = "done" if grounding["passed"] else "failed"
+            yield done(_step("ground", "Checking every number against the results", status, detail=verdict))
+        elif provider.external:
+            # No tool ran, so nothing supports a figure, not even one the user typed: a model must not confirm it.
+            bad_model = ungrounded_numbers(answer, set())
+            if bad_model:
+                log.warning("model_answer_withheld", extra={"count": len(bad_model)})
+                blocked, answer = True, WITHHELD_ANSWER
+                grounding = {
+                    "passed": False,
+                    "ungrounded": bad_model,
+                    "source": "blocked",
+                    "note": "AI answer withheld: it contained numbers but no analysis ran.",
+                }
+                yield done(_step("ground", "Checking every number against the results", "failed", detail="withheld"))
 
         sent_rows = getattr(provider, "sent_rows", 0)
         self.query.record(
@@ -257,7 +276,9 @@ class AgentService:
             "ok",
             fields=tuple(c.name for c in calls),
             rows=sum(len(b.get("rows", [])) for o in outputs for b in o.blocks),
-            reason=f"{provider.name}:{decision.kind}" + (":context" if context and context.selections else ""),
+            reason=f"{provider.name}:{decision.kind}"
+            + (":context" if context and context.selections else "")
+            + (":blocked" if blocked else ""),
         )
         if provider.external:
             self.query.record(

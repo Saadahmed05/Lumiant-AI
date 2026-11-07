@@ -99,7 +99,7 @@ def test_expiring_lots(client: TestClient, alpha_db: Path) -> None:
     assert {r["status"] for r in body["data"]} <= {"expired", "expiring"}
     days = [r["days_to_expiry"] for r in body["data"]]
     assert days == sorted(days)
-    assert body["summary"]["expired"] + body["summary"]["expiring"] == len(body["data"])
+    assert body["summary"]["expired"] + body["summary"]["expiring"] == expected[0]
 
 
 def test_data_quality_reports_planted_gaps(client: TestClient, alpha_db: Path) -> None:

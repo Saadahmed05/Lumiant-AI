@@ -52,7 +52,7 @@ export type ChatAnswer = {
   warnings: ResultWarning[];
   follow_ups: string[];
   choices: Choice[];
-  grounding: { passed: boolean; source: string; note?: string };
+  grounding: { passed: boolean; source: string; note?: string; ungrounded?: string[] };
   steps?: Step[];
   elapsed_ms?: number;
   request_id?: string | null;

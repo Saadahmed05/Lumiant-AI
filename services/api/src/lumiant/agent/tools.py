@@ -380,6 +380,8 @@ def expiring_lots(ctx: ToolContext, a: DaysArgs) -> ToolOutput:
     res = run_expiring(ctx.query, ctx.principal, days=min(a.days, 3650), limit=15)
     s = res.summary or {}
     answer = f"{s['expired']} lots on hand have already expired and {s['expiring']} more expire within {a.days} days."
+    if res.truncated:
+        answer += f" The table shows the first {len(res.rows)}."
     cols = [
         _col("item.item_code", "Item"),
         _col("warehouse_id", "Warehouse"),
@@ -563,13 +565,23 @@ def concentration(ctx: ToolContext, a: ConcentrationArgs) -> ToolOutput:
 
 def insights(ctx: ToolContext, a: NoArgs) -> ToolOutput:
     feed = InsightService(ctx.query).feed(ctx.principal, fresh=True)
-    items, gaps = feed["insights"], feed["gaps"]
+    items, gaps, failed = feed["insights"], feed["gaps"], feed["failed"]
     if items:
         answer = f"I found {len(items)} things worth a look. The most important: {items[0]['title']}."
+    elif failed:
+        answer = "I could not check your data, so I can't say whether anything needs attention."
     else:
         answer = "Nothing stands out in the analyses available for your data."
     if gaps:
         answer += f" {len(gaps)} more checks need data that is not loaded yet."
+    warnings: list[dict[str, str]] = []
+    if failed:
+        message = f"{len(failed)} of the checks could not run, so this picture is incomplete: " + ", ".join(
+            f["label"] for f in failed
+        )
+        if items:
+            answer += " " + message + "."
+        warnings.append({"code": "insights_incomplete", "message": message})
     block = {
         "type": "table",
         "title": "Insights",
@@ -583,9 +595,10 @@ def insights(ctx: ToolContext, a: NoArgs) -> ToolOutput:
         answer,
         [block],
         prov,
-        [],
+        warnings,
         [i["ask"] for i in items[:3]],
-        {"insights": items, "gaps": gaps, "gap_count": len(gaps)},
+        {"insights": items, "gaps": gaps, "gap_count": len(gaps), "failed_count": len(failed)},
+        ok=not failed,
     )
 
 

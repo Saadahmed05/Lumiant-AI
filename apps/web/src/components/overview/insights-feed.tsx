@@ -26,7 +26,8 @@ type Insight = {
   selection: { kind: SelectionKind; id: string } | null;
 };
 type Gap = { id: string; message: string; needs: string };
-type Feed = { insights: Insight[]; gaps: Gap[]; generated_at: string };
+type FailedCheck = { id: string; label: string; code: string; message: string };
+type Feed = { insights: Insight[]; gaps: Gap[]; failed: FailedCheck[]; complete: boolean; generated_at: string };
 
 const SEVERITY = {
   critical: { icon: OctagonAlert, tone: "text-(--status-critical)", edge: "before:bg-(--status-critical)", label: "Critical" },
@@ -54,6 +55,7 @@ export function useInsights() {
 export function InsightsFeed() {
   const feed = useInsights();
   const items = feed.data?.insights ?? [];
+  const failed = feed.data?.failed ?? [];
   return (
     <section aria-label="Insights" className="rise space-y-3" data-testid="insights-feed">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -74,6 +76,18 @@ export function InsightsFeed() {
         </button>
       </div>
 
+      {failed.length > 0 && (
+        <div role="alert" className="panel flex items-start gap-2 border-signal/40 p-4 text-sm text-ink" data-testid="insights-incomplete">
+          <TriangleAlert size={15} className="mt-0.5 shrink-0 text-signal" aria-hidden />
+          <p>
+            <strong className="font-semibold">
+              {items.length === 0 ? "Your data could not be checked, so this does not mean all is well." : "This picture is incomplete."}
+            </strong>{" "}
+            <span className="text-ink-2">Not checked: {failed.map((f) => f.label).join(", ")}. Refresh to try again.</span>
+          </p>
+        </div>
+      )}
+
       {feed.isPending ? (
         <div className="grid gap-3 @2xl:grid-cols-2 @7xl:grid-cols-3">
           {[0, 1, 2].map((i) => (
@@ -85,7 +99,7 @@ export function InsightsFeed() {
           <ErrorState error={feed.error} />
         </div>
       ) : items.length === 0 ? (
-        <p className="panel p-4 text-sm text-ink-3">Nothing stands out in the analyses available for your data.</p>
+        failed.length === 0 && <p className="panel p-4 text-sm text-ink-3">Nothing stands out in the analyses available for your data.</p>
       ) : (
         <ol className="grid gap-3 @2xl:grid-cols-2 @7xl:grid-cols-3">
           {items.map((it, i) => {
