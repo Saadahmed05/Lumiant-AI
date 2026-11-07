@@ -85,15 +85,16 @@ export const useBelowReorder = (query: { offset: number; limit: number }) =>
 
 export type RiskKind = "excess-stock" | "dormant" | "expiring-lots";
 
-export const useRisk = (kind: RiskKind, params: Record<string, string | number>) =>
+export const useRisk = (kind: RiskKind, params: Record<string, string | number>, enabled = true) =>
   useQuery({
     queryKey: ["risk", kind, params],
     queryFn: () => api.get<Envelope>(`/api/analyses/${kind}`, params),
     placeholderData: keepPreviousData,
+    enabled,
   });
 
-export const useDataQuality = () =>
-  useQuery({ queryKey: ["data-quality"], queryFn: () => api.get<DataQuality>("/api/analyses/data-quality") });
+export const useDataQuality = (enabled = true) =>
+  useQuery({ queryKey: ["data-quality"], queryFn: () => api.get<DataQuality>("/api/analyses/data-quality"), enabled });
 
 export const useCostComparison = (item: string, warehouse: string) =>
   useQuery({

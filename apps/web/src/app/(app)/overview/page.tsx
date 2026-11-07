@@ -3,6 +3,7 @@
 import { Lock } from "lucide-react";
 
 import { ValueBars } from "@/components/data/value-bars";
+import { AreaBoard } from "@/components/overview/area-board";
 import { BelowReorderPanel } from "@/components/overview/below-reorder";
 import { InsightsFeed } from "@/components/overview/insights-feed";
 import { KpiStrip } from "@/components/overview/kpi-strip";
@@ -33,6 +34,8 @@ export default function OverviewPage() {
 
       {metrics.isSuccess && <KpiStrip canSeeValue={canSeeValue} />}
 
+      {metrics.isSuccess && me && <AreaBoard me={me} canSeeValue={canSeeValue} />}
+
       <InsightsFeed />
 
       {metrics.isSuccess && canSeeValue ? (
@@ -48,7 +51,9 @@ export default function OverviewPage() {
         </p>
       ) : null}
 
-      <BelowReorderPanel />
+      <div id="below-reorder" className="scroll-mt-20">
+        <BelowReorderPanel />
+      </div>
     </div>
   );
 }

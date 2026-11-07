@@ -358,6 +358,25 @@ test("insights feed hands a finding to the Analyst, which streams its steps and 
   await expect(dock.getByTestId("analyst-answer").last().getByRole("button", { name: /how this was calculated/i }).first()).toBeVisible();
 });
 
+test("overview: four areas show standing figures and ask their drill-down questions", async ({ page }) => {
+  await signIn(page, "alpha.admin");
+  const board = page.getByTestId("area-board");
+  for (const area of ["area-position", "area-replenishment", "area-health", "area-trust"]) {
+    await expect(board.getByTestId(area)).toBeVisible();
+  }
+  await expect(board.getByTestId("area-health")).toContainText(/\d+\s*dormant/);
+  await board.getByRole("button", { name: "Which items have excess stock?" }).click();
+  const dock = page.getByTestId("analyst-dock");
+  await expect(dock.getByTestId("analyst-answer").last()).toContainText("maximum stock");
+});
+
+test("overview: a role without cost access sees no values on the four areas", async ({ page }) => {
+  await signIn(page, "alpha.analyst");
+  const board = page.getByTestId("area-board");
+  await expect(board.getByTestId("area-position")).toContainText("Your role cannot view values");
+  await expect(board).not.toContainText("USD");
+});
+
 test("lens: pick on-screen elements, compare them, and leave with Esc", async ({ page }) => {
   await signIn(page, "alpha.admin");
   await page.getByRole("heading", { name: "Inventory position" }).click();
