@@ -11,7 +11,7 @@ import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 
 import { AnalystDock } from "@/components/analyst/analyst-dock";
 import { Lens } from "@/components/analyst/lens";
-import { toggleDock, toggleLens, useAnalyst } from "@/components/analyst/store";
+import { bindAnalystUser, resetAnalyst, toggleDock, toggleLens, useAnalyst } from "@/components/analyst/store";
 import { CommandPalette } from "@/components/shell/command-palette";
 import { type NavItem, navFor } from "@/components/shell/nav";
 import { toggleRail, useRailCollapsed } from "@/components/shell/rail-state";
@@ -121,6 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     try {
       await api.post("/api/auth/logout");
     } finally {
+      resetAnalyst();
       queryClient.clear();
       router.replace("/login");
     }
@@ -130,11 +131,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (me.error instanceof ApiError && me.error.status === 401) {
       // Expired or invalid session: clear the cookie so the router stops treating us as signed in.
       api.post("/api/auth/logout").finally(() => {
+        resetAnalyst();
         queryClient.clear();
         router.replace("/login");
       });
     }
   }, [me.error, queryClient, router]);
+
+  useEffect(() => {
+    if (me.data) bindAnalystUser(`${me.data.tenant.id}:${me.data.user.id}`);
+  }, [me.data]);
 
   // The page always renders (its own queries handle loading/permissions); only the chrome waits for the session.
   const user = me.data;

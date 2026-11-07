@@ -18,7 +18,10 @@ import {
  * The Analyst: one conversation that follows the user across pages, fed by whatever they point at (ADR-0010).
  *
  * A tiny external store (no provider needed): the shell, the dock, the lens and every Analyzable element read and
- * write the same state. Pinned answers are kept per browser (localStorage) — a convenience, not a record.
+ * write the same state. Pinned answers are kept per user in this browser (localStorage) — a convenience, not a record.
+ *
+ * This state outlives page changes, so it holds what one user was allowed to see. Sign-out must call resetAnalyst,
+ * and the shell binds the signed-in user so that a different user never inherits it.
  */
 export type Turn = {
   id: number;
@@ -43,12 +46,20 @@ type State = {
 
 const MAX_SELECTIONS = 5;
 const BOARD_KEY = "lumiant-analyst-board";
+const EMPTY: State = { open: false, lens: false, selections: [], turns: [], busy: false, board: [] };
 const listeners = new Set<() => void>();
 let nextId = 1;
+let owner: string | null = null;
+// Bumped whenever the user changes, so a stream still running cannot touch the next user's state.
+let generation = 0;
 
-function loadBoard(): Pin[] {
+function boardKey(user: string) {
+  return `${BOARD_KEY}:${user}`;
+}
+
+function loadBoard(user: string): Pin[] {
   try {
-    const raw = typeof window === "undefined" ? null : window.localStorage.getItem(BOARD_KEY);
+    const raw = typeof window === "undefined" ? null : window.localStorage.getItem(boardKey(user));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? (parsed as Pin[]).slice(0, 50) : [];
   } catch {
@@ -56,8 +67,15 @@ function loadBoard(): Pin[] {
   }
 }
 
-let state: State = { open: false, lens: false, selections: [], turns: [], busy: false, board: [] };
-let boardLoaded = false;
+function forget(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // blocked storage: nothing was saved there either
+  }
+}
+
+let state: State = EMPTY;
 const SERVER: State = state;
 
 function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
@@ -72,10 +90,6 @@ function set(patch: Partial<State> | ((s: State) => Partial<State>)) {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (!boardLoaded) {
-    boardLoaded = true;
-    queueMicrotask(() => set({ board: loadBoard() }));
-  }
   return () => listeners.delete(listener);
 }
 
@@ -90,6 +104,26 @@ export function useAnalyst(): State {
 export const sameSelection = (a: Selection, b: Selection) => a.kind === b.kind && a.id === b.id;
 
 // ------------------------------------------------------------------------------------------------ actions
+/** Name the signed-in user. A different user starts empty, even if the last one never signed out. */
+export function bindAnalystUser(user: string) {
+  if (user === owner) return;
+  if (owner !== null) {
+    generation += 1;
+    set(EMPTY);
+  }
+  owner = user;
+  forget(BOARD_KEY); // pins saved before they had an owner could belong to anyone
+  set({ board: loadBoard(user) });
+}
+
+/** End of session: nothing this user saw may stay in memory or in this browser. */
+export function resetAnalyst() {
+  if (owner !== null) forget(boardKey(owner));
+  owner = null;
+  generation += 1;
+  set(EMPTY);
+}
+
 export function openDock(open = true) {
   set({ open });
 }
@@ -155,6 +189,7 @@ export async function ask(question: string): Promise<void> {
   const q = question.trim().slice(0, 500);
   if (q.length < 2 || state.busy) return;
   const id = nextId++;
+  const started = generation;
   const selections = state.selections;
   const history = toHistory(state.turns);
   set((s) => ({ open: true, busy: true, turns: [...s.turns, { id, question: q, selections, steps: [], blocks: [] }] }));
@@ -177,13 +212,14 @@ export async function ask(question: string): Promise<void> {
         : "Something went wrong.";
     updateTurn(id, () => ({ error: message }));
   } finally {
-    set({ busy: false });
+    if (started === generation) set({ busy: false });
   }
 }
 
 function saveBoard(board: Pin[]) {
+  if (owner === null) return;
   try {
-    window.localStorage.setItem(BOARD_KEY, JSON.stringify(board));
+    window.localStorage.setItem(boardKey(owner), JSON.stringify(board));
   } catch {
     // private window or blocked storage: the board just isn't remembered
   }

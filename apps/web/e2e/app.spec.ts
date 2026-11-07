@@ -388,3 +388,28 @@ test("insights and the Analyst never show values to a role without cost access",
   await expect(dock.getByTestId("analyst-answer").last()).toContainText("can't view inventory values");
   await expect(dock).not.toContainText("USD");
 });
+
+test("the next user in the same tab sees nothing from the Analyst of the last one (LA-39)", async ({ page }) => {
+  await signIn(page, "alpha.admin");
+  await page.getByTestId("analyst-toggle").click();
+  const dock = page.getByTestId("analyst-dock");
+  await dock.getByLabel("Ask the Analyst").fill("Which items make up most of the inventory value?");
+  await dock.getByRole("button", { name: "Send" }).click();
+  await expect(dock.getByTestId("analyst-answer").last()).toContainText("USD");
+  await dock.getByRole("button", { name: "Pin", exact: true }).click();
+  const storage = () => page.evaluate(() => JSON.stringify({ ...localStorage }));
+  await expect.poll(storage).toContain("make up most");
+
+  // Sign out and in without a page load: a reload would clear memory and hide the leak.
+  await page.getByRole("button", { name: "Sign out" }).first().click();
+  await page.waitForURL("**/login");
+  expect(await storage()).not.toContain("make up most");
+  await page.getByTestId("login-alpha.analyst").click();
+  await page.waitForURL("**/overview");
+  await expect(page.getByTestId("kpi-items")).toContainText(/\d/);
+
+  await page.getByTestId("analyst-toggle").click();
+  await expect(dock).toBeVisible();
+  await expect(dock).not.toContainText("USD");
+  await expect(dock.getByTestId("analyst-answer")).toHaveCount(0);
+});
