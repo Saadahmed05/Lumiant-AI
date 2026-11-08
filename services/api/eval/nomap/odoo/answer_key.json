@@ -1,0 +1,59 @@
+{
+ "companies": 2,
+ "o01": 33,
+ "o02": {
+  "Units": 1188.0
+ },
+ "o03": 0.0,
+ "o03_alt_quant_value": 0.0,
+ "o04": 2,
+ "o05": 500.0,
+ "o05_name": "[E-COM07] Large Cabinet",
+ "o06": 1,
+ "o07": 500.0,
+ "o07_name": "[E-COM07] Large Cabinet",
+ "o08": 7,
+ "o09": 3,
+ "o09_total_rules": 3,
+ "negative_internal_quants": 0,
+ "non_internal_quant_qty": -1188.0,
+ "currency": "USD",
+ "value_at_cost": 527720.5,
+ "products_by_qty": [
+  [
+   "[E-COM07] Large Cabinet",
+   500.0
+  ],
+  [
+   "[FURN_5555] Cable Management Box",
+   90.0
+  ],
+  [
+   "[FURN_8855] Drawer",
+   80.0
+  ],
+  [
+   "[DESK0006] Customizable Desk (Custom, Black)",
+   70.0
+  ],
+  [
+   "[DESK0005] Customizable Desk (Custom, White)",
+   65.0
+  ],
+  [
+   "[FURN_7800] Desk Combination",
+   60.0
+  ]
+ ],
+ "storable_with_stock": 18,
+ "stock_account_installed": true,
+ "quants_per_company": {
+  "My Company (Chicago)": 0,
+  "My Company (San Francisco)": 1188.0
+ },
+ "warehouses": [
+  "YourCompany (My Company (San Francisco))",
+  "My Company (Chicago) (My Company (Chicago))"
+ ],
+ "draft_rfqs": 7
+}

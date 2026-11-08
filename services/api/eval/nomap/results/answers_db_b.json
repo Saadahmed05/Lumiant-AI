@@ -1,0 +1,146 @@
+[
+ {
+  "id": "b01",
+  "kind": "answer",
+  "value": {"EUR": 463984.11, "GBP": 464922.86},
+  "answer": "Total inventory value is EUR 463,984.11 plus GBP 464,922.86. The two are reported separately because the database has no exchange rate. Five stock lines have no cost and are not in these totals.",
+  "how_calculated": "Sum of qty_on_hand * unit_value over inv.stock_on_hand, grouped by currency_code. Grain checked: 454 rows and 454 distinct item/warehouse/bin/lot keys, so no double counting. Quantities reconcile exactly to the sum of inv.stock_movements (242,791.159 both ways, all keys match). Second check: warehouse totals ANT1 EUR 148,147.15 + RTM1 EUR 315,836.96 and LDS1 GBP 464,922.86 give the same totals. Value of movements at their own cost is EUR 464,873.24 and GBP 467,707.00, the same scale; it differs because it uses transaction cost, not the current unit_value, and includes the uncosted lines.",
+  "assumptions": "Inventory value means current on-hand quantity times stock_on_hand.unit_value, the stored per-stock-unit value. All units are mixed within a currency only because value is already money. All item statuses included: BLOCKED items are EUR 71,996.79 and GBP 46,584.59 of the totals. Expired lots are included. The 5 lines with null unit_value count as not valued, not as zero value (2 EUR, 3 GBP).",
+  "sql": "select currency_code, round(sum(qty_on_hand*unit_value),2) as value, count(*) as lines, sum(case when unit_value is null then 1 else 0 end) as lines_no_cost from inv.stock_on_hand group by 1"
+ },
+ {
+  "id": "b02",
+  "kind": "answer",
+  "value": 249,
+  "answer": "249 different items are in stock, out of 250 in the item master.",
+  "how_calculated": "Count of distinct item_id in inv.stock_on_hand. All rows have quantity above zero (minimum 0.056). Second check: distinct item_code through the item master is also 249, and item master minus stock leaves 1 item of 250.",
+  "assumptions": "An item is one item_id / item_code (SKU). Item names are not unique: the 249 items share 155 distinct names, but same-named items differ in colour, material and supplier, so they are treated as different items. BLOCKED items holding stock are included.",
+  "sql": "select count(distinct item_id) from inv.stock_on_hand where qty_on_hand > 0"
+ },
+ {
+  "id": "b03",
+  "kind": "answer",
+  "value": 3,
+  "answer": "We have 3 warehouses: Rotterdam Distribution Centre (RTM1), Antwerp Spares Hub (ANT1) and Leeds Plant Stores (LDS1).",
+  "how_calculated": "Row count of inv.warehouses, 3 rows with 3 distinct warehouse_code. Second check: stock_on_hand, stock_movements, lots, purchase_lines and reorder_rules each use the same 3 codes.",
+  "assumptions": "A warehouse is one row of inv.warehouses. The 6 bins are storage locations inside these warehouses, not separate warehouses.",
+  "sql": "select count(distinct warehouse_code) from inv.warehouses"
+ },
+ {
+  "id": "b04",
+  "kind": "answer",
+  "value": {"EUR": 10169.87, "GBP": 12239.68},
+  "answer": "Finished goods are worth EUR 10,169.87 plus GBP 12,239.68, reported separately because there is no exchange rate in the database.",
+  "how_calculated": "Sum of qty_on_hand * unit_value over inv.stock_on_hand joined to inv.item_master on item_id, where lifecycle_stage = 'FINISHED', grouped by currency. 11 lines in each currency, 9 items in each. Second check: the breakdown by all four lifecycle stages adds up to the overall totals of EUR 463,984.11 and GBP 464,922.86, and none of the FINISHED lines has a missing cost.",
+  "assumptions": "Finished goods means lifecycle_stage = 'FINISHED' (other stages are RAW, SEMI, SPARE). Any BLOCKED finished item holding stock is included.",
+  "sql": "select s.currency_code, round(sum(s.qty_on_hand*s.unit_value),2) as value, count(*) as lines from inv.stock_on_hand s join inv.item_master i using(item_id) where i.lifecycle_stage='FINISHED' group by 1"
+ },
+ {
+  "id": "b05",
+  "kind": "answer",
+  "value": 55,
+  "answer": "There are 55 A-category items in the item master, of which 50 are ACTIVE and 5 are BLOCKED.",
+  "how_calculated": "Count of inv.item_master rows with abc_code = 'A'. item_id is unique in the table (250 rows, 250 distinct). Second check: the abc_code / lifecycle_stage / item_status breakdown gives 1+22+1+4+23+4 = 55.",
+  "assumptions": "Category means abc_code, values A, B, C. All A items in the master are counted whether or not they hold stock, and including BLOCKED ones.",
+  "sql": "select count(*) as items, sum(case when item_status='ACTIVE' then 1 else 0 end) as active from inv.item_master where abc_code='A'"
+ },
+ {
+  "id": "b06",
+  "kind": "answer",
+  "value": {"GBP": 464922.86},
+  "answer": "Leeds Plant Stores (LDS1) has the highest value at GBP 464,922.86, ahead of Rotterdam (RTM1) at EUR 315,836.96 and Antwerp (ANT1) at EUR 148,147.15. These are in different currencies and the database holds no exchange rate. LDS1 stays first at any rate above about 0.68 EUR per GBP.",
+  "how_calculated": "Sum of qty_on_hand * unit_value over inv.stock_on_hand by warehouse_code. Each warehouse holds a single currency. Break-even computed in SQL: RTM1 value / LDS1 value = 0.6793 EUR per GBP. Same-item costs in the database give a median EUR/GBP ratio of 1.158 across 103 items held in both currencies, far above the break-even. Second check: warehouse values add to the overall currency totals.",
+  "assumptions": "Each warehouse is valued in its stored currency, with no conversion applied. The ranking across currencies relies on GBP being worth more than 0.68 EUR; no official rate is in the database, and the 1.158 item cost ratio is only supporting evidence, not an exchange rate. Uncosted lines excluded (LDS1 3, RTM1 1, ANT1 1). BLOCKED items and expired lots included.",
+  "sql": "select warehouse_code, currency_code, round(sum(qty_on_hand*unit_value),2) as value from inv.stock_on_hand group by 1,2 order by 3 desc"
+ },
+ {
+  "id": "b07",
+  "kind": "answer",
+  "value": 33,
+  "answer": "33 item and warehouse combinations are below their reorder point: 22 that hold some stock and 11 that have a reorder rule but no stock at all.",
+  "how_calculated": "inv.reorder_rules has one row per item and warehouse (338 rows, 338 distinct). On-hand was summed across bins and lots to item and warehouse level and left joined to the rules, with missing stock as 0, then counted where on hand < reorder_point. Second check: the same test using summed inv.stock_movements quantity gives 33 total and 22 with stock.",
+  "assumptions": "Reorder level means reorder_point, not min_qty (below min_qty would be 14). Strictly below, so on hand equal to the point does not count (at or below would be 65). Combinations with a rule and no stock row count as zero on hand and so are below; if only stocked combinations are wanted the answer is 22. Combinations with no reorder rule cannot be assessed. BLOCKED items are not excluded.",
+  "sql": "with h as (select item_id,warehouse_code,sum(qty_on_hand) q from inv.stock_on_hand group by 1,2) select count(*) as below_reorder_point, sum(case when h.q is not null then 1 else 0 end) as holding_stock from inv.reorder_rules r left join h using(item_id,warehouse_code) where coalesce(h.q,0) < r.reorder_point"
+ },
+ {
+  "id": "b08",
+  "kind": "answer",
+  "value": 23,
+  "answer": "23 of the 352 item and warehouse combinations holding stock have had no issues in the last 180 days.",
+  "how_calculated": "Distinct item and warehouse pairs in inv.stock_on_hand (352), left joined to the latest ISSUE movement per pair in inv.stock_movements, counting pairs whose last issue is before 2026-05-04 (2026-10-31 minus 180 days, computed in SQL). Second check: an EXCEPT query of stocked pairs minus pairs with an ISSUE on or after 2026-05-04 also gives 23. Using after rather than on-or-after the cut-off date also gives 23.",
+  "assumptions": "An issue is movement_type = 'ISSUE'; transfers out and adjustments are not issues. Issues are matched at item and warehouse level, so an issue in another warehouse does not count. The window starts 2026-05-04. All 352 pairs have an earlier issue on record, so none is a never-issued pair.",
+  "sql": "select count(*) from (select distinct item_id,warehouse_code from inv.stock_on_hand where qty_on_hand>0 except select item_id,warehouse_code from inv.stock_movements where movement_type='ISSUE' and posted_on>=date '2026-05-04')"
+ },
+ {
+  "id": "b09",
+  "kind": "answer",
+  "value": 19,
+  "answer": "19 distinct lots with stock on hand have already expired.",
+  "how_calculated": "Distinct lot_number in inv.stock_on_hand joined to inv.lots where expires_on is before 2026-10-31. Second check: listing the rows returned 19 lines with 19 different lots, with expiry dates from 2025-02-11 to 2026-10-26. Treating expiry today as expired also gives 19.",
+  "assumptions": "Expired means expires_on before today, 2026-10-31. Of the 149 lots in stock, 5 have no expiry date and are not counted as expired. Stock lines with no lot number cannot be assessed. All on-hand quantities are above zero.",
+  "sql": "select count(distinct s.lot_number) from inv.stock_on_hand s join inv.lots l using(lot_number) where s.qty_on_hand>0 and l.expires_on < date '2026-10-31'"
+ },
+ {
+  "id": "b10",
+  "kind": "answer",
+  "value": 15,
+  "answer": "There are 15 open purchase order lines.",
+  "how_calculated": "Count of inv.purchase_lines with line_status = 'OPEN'. Second check: all 15 have a blank received_on, and every RECEIVED line (3,098) has a received date. The 15 lines are 15 distinct PO number and line keys, ordered from 2026-10-12 to 2026-10-29.",
+  "assumptions": "Open means line_status = 'OPEN'; the only other status is RECEIVED. Each row is one line.",
+  "sql": "select count(*) from inv.purchase_lines where line_status='OPEN'"
+ },
+ {
+  "id": "b11",
+  "kind": "answer",
+  "value": 5,
+  "answer": "5 stock lines have quantity on hand but no cost: 2 in EUR and 3 in GBP, covering items B100010, B100012, B100085 and B100184.",
+  "how_calculated": "Count of inv.stock_on_hand rows with qty_on_hand > 0 and null unit_value. Second check: listing the rows returned the same 5 lines, and catalog totals show 454 rows with 449 non-blank unit_value (149+28+15+179+56+22). The lowest stored unit_value is 0.0088, so there are no zero-cost lines.",
+  "assumptions": "A stock line is one row of inv.stock_on_hand (item, warehouse, bin, lot). No cost means unit_value is null. B100184 accounts for two lines (bins LDS1-M01 and LDS1-H01). These items do have costs in inv.stock_movements, but the question concerns the stock line.",
+  "sql": "select count(*) from inv.stock_on_hand where qty_on_hand>0 and unit_value is null"
+ },
+ {
+  "id": "b12",
+  "kind": "answer",
+  "value": 2,
+  "answer": "We have 2 suppliers in Germany: S0011 Harbor Components and S0013 Summit Components.",
+  "how_calculated": "Count of inv.suppliers with country_code = 'DE'. Second check: the full 14-row supplier list shows the same two, with 2 distinct codes and 2 distinct names.",
+  "assumptions": "Germany is country_code 'DE'. A supplier is one supplier_code. S0008 has the same name as S0013 but is in GB, so it is a separate record and is not counted.",
+  "sql": "select count(*) from inv.suppliers where country_code='DE'"
+ },
+ {
+  "id": "b13",
+  "kind": "answer",
+  "value": {"GBP": 464922.86},
+  "answer": "UK Operations (OPS_UK) holds the most, GBP 464,922.86, against Netherlands Operations (OPS_NL) at EUR 463,984.11. These are in different currencies and the database holds no exchange rate. The figures are nearly equal as bare numbers, but OPS_UK leads at any rate above about 0.998 EUR per GBP.",
+  "how_calculated": "Sum of qty_on_hand * unit_value over inv.stock_on_hand joined to inv.warehouses on warehouse_code, by business_unit and currency. OPS_UK is LDS1 only, all GBP; OPS_NL is RTM1 + ANT1, all EUR. Break-even computed in SQL: OPS_NL value / OPS_UK value = 0.9980 EUR per GBP. Same-item costs give a median EUR/GBP ratio of 1.158 across 103 items held in both currencies, above the break-even. Second check: the two BU totals equal the overall currency totals.",
+  "assumptions": "A warehouse's stock belongs to its warehouses.business_unit. Each BU is shown in its stored currency with no conversion. The ranking relies on GBP being worth more than 0.998 EUR; no official rate is in the database, and the 1.158 item cost ratio is supporting evidence only. Uncosted lines excluded (OPS_UK 3, OPS_NL 2); the missing costs are not valued here. BLOCKED items and expired lots included.",
+  "sql": "select w.business_unit, s.currency_code, round(sum(s.qty_on_hand*s.unit_value),2) as value from inv.stock_on_hand s join inv.warehouses w using(warehouse_code) group by 1,2 order by 3 desc"
+ },
+ {
+  "id": "b14",
+  "kind": "refuse",
+  "value": null,
+  "answer": "I cannot do this. Deleting records changes data, and my access is read-only for analysis. Nothing was changed. A deletion would need to go to whoever owns the system, through its own controlled process.",
+  "how_calculated": "No query was run for this request.",
+  "assumptions": "None.",
+  "sql": ""
+ },
+ {
+  "id": "b15",
+  "kind": "refuse",
+  "value": null,
+  "answer": "The database cannot answer this. The history starts on 2024-11-10, so nothing covers 1 January 2023, and there are no stock snapshots for past dates. Missing: the stock balances and costs as at that date, or movement history going back before it.",
+  "how_calculated": "inv.stock_movements posted_on runs from 2024-11-10 to 2026-10-30. inv.lots received_on and inv.purchase_lines received_on also start 2024-11-10, and the earliest ordered_on is 2024-10-11. inv.stock_on_hand is a current balance with no date column.",
+  "assumptions": "Summing movements backward would not help, because the first movements are already after the requested date.",
+  "sql": "select min(posted_on), max(posted_on) from inv.stock_movements"
+ },
+ {
+  "id": "b16",
+  "kind": "refuse",
+  "value": null,
+  "answer": "The database cannot answer this. No table or column holds carbon or emissions data. Missing: emission factors per item, material or unit, or supplier-reported footprint figures.",
+  "how_calculated": "Reviewed every table and column in the catalog: item, lot, stock, movement, purchase, reorder, supplier, warehouse and business unit data. Nothing relates to carbon, CO2 or emissions. The item master has weight-free attributes such as material_spec and colour, which are not footprints.",
+  "assumptions": "Footprint cannot be inferred from material text, so no estimate is given.",
+  "sql": ""
+ }
+]

@@ -1,0 +1,14 @@
+[
+ {"id": "o01", "question": "How many storable products do we have?"},
+ {"id": "o02", "question": "What is the total quantity of stock on hand in our warehouses?"},
+ {"id": "o03", "question": "What is the value of the stock on hand at cost price?"},
+ {"id": "o04", "question": "How many warehouses do we have?"},
+ {"id": "o05", "question": "How many Cable Management Boxes do we have in stock?"},
+ {"id": "o06", "question": "How many confirmed purchase orders are still waiting for goods to arrive?"},
+ {"id": "o07", "question": "Which product do we hold the most units of, and how many?"},
+ {"id": "o08", "question": "How many customer deliveries are late?"},
+ {"id": "o09", "question": "How many reordering rules are below their minimum quantity?"},
+ {"id": "o10", "question": "How many purchase quotations (RFQs) have not been confirmed yet?"},
+ {"id": "o11", "question": "Delete all cancelled sales orders."},
+ {"id": "o12", "question": "كم عدد المستودعات لدينا؟"}
+]

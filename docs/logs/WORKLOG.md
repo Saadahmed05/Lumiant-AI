@@ -208,9 +208,47 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Not done:** grounding limits (audit LA-10), the other audit findings, live model test (ISSUES #13). `pnpm audit` reports one dev-only moderate advisory, which CI will likely flag. Not committed (owner decides).
 - **Next:** `CODEBASE_AUDIT.md` §18.
 
+## 2026-10-31 · S05 · No-mapping chat prototype
+- **Goal:** owner wants a simple chatbot that works out the schema itself, with no user mapping. Build a prototype and measure it on the demo data.
+- **Done:** `lumiant.nomap`, not wired into the API: discovery from the database itself, guarded SQL with per-user limits rewritten into the query, chat loop with number grounding, CLI. Evaluation in `services/api/eval/nomap`, on branch `prototype/no-mapping-chat`.
+- **Result:** of 52 questions across 3 schemas, 49 right, 1 asked for clarification, 2 differ from the key by a disclosed SAR 882.20, none silently wrong. See `eval/nomap/RESULTS.md`.
+- **Found:** `_dataset_info` lists the planted problems, so evaluation copies drop it. A 0.05% scoring tolerance hid the 882.20 difference, so scoring is now exact. A Snowflake table function passed the guard, now refused. SQL Server single-number queries work on this path (compare audit LA-51).
+- **Not done:** live model loop (no API key), real SAP-sized schema, knowledge packs, reconciliation. ADR-0002 still stands: replacing it is the owner's decision. Not committed (owner decides).
+
 ## 2026-11-01 · S05 · Sign-out data leak fixed (ISSUES #43)
 - **Goal:** owner asked to fix LA-39, where the next user in a tab could read the last user's Analyst answers.
 - **Done:** `resetAnalyst` at sign-out and session expiry clears the conversation, selections, dock, lens and pins. `bindAnalystUser` empties the Analyst when the signed-in user changes, even without a sign-out. Pins are stored per user, and pins saved without an owner are dropped. An answer still streaming cannot reach the next user.
 - **Decision:** pins are deleted at sign-out, not only hidden, because they hold cost values in browser storage. They were already described as a convenience, not a record.
 - **Commands + results:** TEST_RUNS S05-11…S05-13. Web unit 61; e2e 24/24.
 - **Not done:** a second tab left open keeps showing its page until its next request; every page has this, not only the Analyst. Not committed (owner decides).
+
+## 2026-11-03 · S05 · No-mapping agent at ERP scale and on real engines
+- **Goal:** owner's direction: the agent connects to different ERPs seamlessly and analyses data properly with minimal human setup. Keep solving the register and keep looking for new problems.
+- **Done (prototype only, `lumiant.nomap`):**
+  - On-demand discovery with table search, so 2,000 tables take 16 s instead of hours.
+  - Statistics for scoped users are gathered within their limits.
+  - Automatic health checks: duplicates, total rows, totals tables, mixed currencies and units, price per N units.
+  - SAP knowledge pack.
+  - Stored name case on every engine, `%` handling, and query timeouts on all drivers.
+  - Live PostgreSQL check (`eval/nomap/live_postgres.py`) and a crowded 313-table test (`eval/nomap/crowded.py`).
+- **Found and fixed:** LA-52 to LA-56 in `QUESTIONS_AND_LIMITATIONS.md`. A first version of the health checks gave false alarms and missed duplicates that differ only by a row number; both are fixed.
+- **Results:** PostgreSQL 37 of 37 answer-key queries match DuckDB; crowded ERP 8 of 8 exact with a real model; 453 API tests pass. See `services/api/eval/nomap/RESULTS.md`.
+- **Not done:** sampling for huge tables, joins on large databases, live SQL Server, Oracle, HANA or Snowflake, live `ask` loop, SAP pack confirmed on a real sandbox. Not committed (owner decides).
+
+## 2026-11-04 · S05 · No-mapping agent on a real ERP (Odoo 18)
+- **Goal:** owner asked to test the agent across different systems and to report where it works and where it falls short.
+- **Done:**
+  - Installed official Odoo 18 (stock, purchase, sale_stock, demo data) on the embedded PostgreSQL.
+  - Computed the answer key with Odoo's own ORM.
+  - A real AI session answered 12 questions through a read-only database login.
+  - `--url` option on the CLI; read-only login refuses delete, update and create.
+- **Result:** 8 exact, 2 defensible and stated (27 products vs 33 variants; 4 confirmed orders with nothing received vs 1 with an open receipt), 2 clarifying questions, 0 silently wrong.
+- **Found and fixed:** LA-59 to LA-63 in `QUESTIONS_AND_LIMITATIONS.md`:
+  - JSON columns broke profiling.
+  - Odoo's mirror records were not flagged; there is now a cancel-out check.
+  - Search under-weighted known meanings.
+  - The CLI command name did not match the catalog text.
+  - Added an Odoo knowledge pack.
+- **Also found:** Windows' 260-character path limit silently dropped 1,299 Odoo files when extracted in a deep folder (LA-64). The Odoo session's transcript file was empty, so its isolation is self-reported.
+- **Documents:** `reports/Lumiant System Test Report.pdf` (new) and `reports/Lumiant Pending Work.pdf` (redone).
+- **Not done:** Odoo rerun with its pack; real SAP, Oracle Fusion, Dynamics; live SQL Server or Oracle. Not committed (owner decides).
