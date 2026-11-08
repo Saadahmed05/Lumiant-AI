@@ -108,5 +108,7 @@ export const useAbc = (a: string, b: string, currency: string) =>
   useQuery({
     queryKey: ["abc", a, b, currency],
     queryFn: () => api.get<AbcResult>("/api/analyses/abc", { a, b, currency: currency || undefined }),
+    // The user picks the cutoffs and presses Run; asking before that only earns a 422 for missing parameters.
+    enabled: a.length > 0 && b.length > 0,
     retry: false,
   });
