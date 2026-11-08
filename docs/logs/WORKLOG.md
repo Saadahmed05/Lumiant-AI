@@ -252,3 +252,9 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Also found:** Windows' 260-character path limit silently dropped 1,299 Odoo files when extracted in a deep folder (LA-64). The Odoo session's transcript file was empty, so its isolation is self-reported.
 - **Documents:** `reports/Lumiant System Test Report.pdf` (new) and `reports/Lumiant Pending Work.pdf` (redone).
 - **Not done:** Odoo rerun with its pack; real SAP, Oracle Fusion, Dynamics; live SQL Server or Oracle. Not committed (owner decides).
+
+## 2026-11-08 · S06 · Merged PR #3 (no-mapping chat prototype), conflicts resolved
+- **Goal:** owner asked to pull, fix a merge conflict, complete the open PR, and push.
+- **Done:** fast-forwarded local `main` to `origin/main` (10 commits: PRs #1, #2, #4, #5 already merged by `Saadahmed05` on GitHub). Merged PR #3 (`prototype/no-mapping-chat`, head `c18fedd`) onto the updated `main`; two conflicts, both in `docs/logs/TEST_RUNS.md` and `docs/logs/WORKLOG.md` — independent dated entries from diverging branches, resolved by interleaving in date order (no content dropped from either side). Verified on the merged tree, then pushed straight to `origin/main`, which closed PR #3 as merged (GitHub matched the carried-over head commit).
+- **Commands + results:** TEST_RUNS S06-1.
+- **Not done:** `lumiant.nomap` stays unwired (ADR-0002 unchanged); the owner has not yet decided whether to bring it into the product.
