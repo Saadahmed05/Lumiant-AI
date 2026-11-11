@@ -3,7 +3,9 @@
 import { ArrowRight, BarChart3, Boxes, ClipboardCheck, Coins, FileText, Scale, ShieldAlert, Snail } from "lucide-react";
 import Link from "next/link";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { useMe } from "@/lib/hooks";
+import { enterDelay } from "@/lib/motion";
 
 type Card = {
   title: string;
@@ -32,24 +34,22 @@ export function ExplorePage() {
   const cards = CARDS.filter((c) => !c.needs || sections.has(c.needs));
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <div className="rise">
-        <p className="eyebrow">Explore</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">What would you like to do?</h1>
-        <p className="mt-1 text-sm text-ink-3">Each choice runs the same secured analyses as the assistant. Only options your role allows are shown.</p>
-      </div>
+      <PageHeader title="What would you like to do?" description="Each choice runs the same secured analyses as the assistant. Only options your role allows are shown." />
       <ul className="grid gap-3 sm:grid-cols-2" data-testid="explore-cards">
         {cards.map((c, i) => (
-          <li key={c.title} className="rise" style={{ animationDelay: `${i * 40}ms` }}>
+          <li key={c.title} className="rise" style={enterDelay(i)}>
             <Link
               href={c.href}
-              className="group flex h-full items-start gap-3 rounded-md border border-line bg-surface p-4 transition-colors hover:border-line-strong hover:bg-surface-2"
+              className="panel group flex h-full items-start gap-3.5 p-4 transition-colors hover:border-line-strong hover:bg-surface-2 sm:p-5"
             >
-              <c.icon size={20} className="mt-0.5 shrink-0 text-accent" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-ink">{c.title}</span>
-                <span className="mt-0.5 block text-xs text-ink-3">{c.blurb}</span>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-control border border-line bg-surface-2 text-accent">
+                <c.icon size={18} aria-hidden />
               </span>
-              <ArrowRight size={16} className="mt-1 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-title font-semibold text-ink">{c.title}</span>
+                <span className="mt-1 block text-dense text-ink-3">{c.blurb}</span>
+              </span>
+              <ArrowRight size={16} className="mt-1 shrink-0 text-ink-3 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-ink" aria-hidden />
             </Link>
           </li>
         ))}

@@ -258,3 +258,17 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Done:** fast-forwarded local `main` to `origin/main` (10 commits: PRs #1, #2, #4, #5 already merged by `Saadahmed05` on GitHub). Merged PR #3 (`prototype/no-mapping-chat`, head `c18fedd`) onto the updated `main`; two conflicts, both in `docs/logs/TEST_RUNS.md` and `docs/logs/WORKLOG.md` — independent dated entries from diverging branches, resolved by interleaving in date order (no content dropped from either side). Verified on the merged tree, then pushed straight to `origin/main`, which closed PR #3 as merged (GitHub matched the carried-over head commit).
 - **Commands + results:** TEST_RUNS S06-1.
 - **Not done:** `lumiant.nomap` stays unwired (ADR-0002 unchanged); the owner has not yet decided whether to bring it into the product.
+
+## 2026-11-11 · S07 · M11 visual refresh (graphite + emerald, Inter, system theme)
+- **Goal:** owner asked for a premium look: new colour and font combination, every component engineered properly, plan first. Owner chose graphite + emerald, Inter + Geist Mono, theme follows the device. Plan approved; owner then said "complete the work now" and stopped the slow baseline run.
+- **Done (web only, visual layer; no backend, route, wording, permission or test-id change):**
+  - Tokens in `globals.css`: new values under the same names, radius rule, type scale, flat background; glow, grid and radial lights removed.
+  - Inter variable self-hosted (`inter-ui` 4.1.1); numbers in Inter with aligned digits; Geist Mono only for identifiers.
+  - Theme follows the device until the user chooses; "Theme: match system" in the palette.
+  - New primitive layer `components/ui/`; shell, Analyst and all nine screens moved onto it.
+  - `tests/unit/ui.test.tsx` (13 tests).
+- **Found and fixed on the way:** caller classes fighting primitive classes (Costs input widths); light-theme critical red and warning label below 4.5:1; Inventory sorted by value pushed the VALUE column off-screen at 1440 px (columns now 24 px apart, numbers never wrap); a long money KPI ran past its tile on the SAR tenant (`.kpi-fit` shrinks it with the tile).
+- **Commands + results:** TEST_RUNS S07-0…S07-7.
+- **Deviations from the plan:** no baseline unit/e2e run and no "before" screenshots (owner stopped the baseline); no sticky table header (ISSUES #50); visual check from headless screenshots, not a real display (ISSUES #51); `ship-check` skill not run (its checks were run one by one); API tests not run (backend untouched).
+- **Records:** ADR-0011, DEC-024/025, ISSUES #39 narrowed, #50–#52, FRONTEND, TESTING, USER_GUIDE, UI_UX_AUDIT note, CHANGELOG, IMPLEMENTATION_PLAN M11.
+- **Not done:** owner's look on a real display; axe run; D4 rest. Committed and pushed to `main` at the owner's request; CI not yet checked.

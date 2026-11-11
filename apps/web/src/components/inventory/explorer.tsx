@@ -1,7 +1,5 @@
 "use client";
 
-import { clsx } from "clsx";
-import { ArrowDown, ArrowUp, Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -9,10 +7,14 @@ import { AnalyzeButton, analyzableProps } from "@/components/analyst/analyzable"
 import { analyze } from "@/components/analyst/store";
 import { Pager } from "@/components/data/pager";
 import { ErrorState, Panel, Skeleton } from "@/components/data/widget";
+import { Field, SearchInput, Select } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
+import { CodeName, DataTable, HeadRow, Td, Th, Tr } from "@/components/ui/table";
 import type { Selection } from "@/lib/agent";
 import type { Row } from "@/lib/api";
 import { formatMoney, formatNumber, humanize } from "@/lib/format";
 import { type BalanceQuery, useBalances, useInventoryFilters, usePageMe } from "@/lib/hooks";
+import { enterDelay } from "@/lib/motion";
 
 const LIMIT = 50;
 
@@ -32,36 +34,29 @@ const COLUMNS: Col[] = [
     key: "item",
     label: "Item",
     sort: "item_code",
-    render: (r) => (
-      <>
-        <span className="figure block text-xs text-ink-3">{r["item.item_code"] ?? r.item_id}</span>
-        <span className="block max-w-80 truncate text-ink" title={String(r["item.description"] ?? "")}>
-          {r["item.description"] ?? "—"}
-        </span>
-      </>
-    ),
+    render: (r) => <CodeName code={r["item.item_code"] ?? r.item_id} name={r["item.description"] as string | null} max="max-w-80" />,
   },
   { key: "group", label: "Group", sort: "item_group", render: (r) => humanize(r["item.item_group"] as string) },
-  { key: "abc", label: "ABC", sort: "abc_class", field: "item.abc_class", render: (r) => <span className="figure">{r["item.abc_class"] ?? "—"}</span> },
+  { key: "abc", label: "ABC", sort: "abc_class", field: "item.abc_class", render: (r) => r["item.abc_class"] ?? "—" },
   {
     key: "warehouse",
     label: "Warehouse",
     sort: "warehouse",
     render: (r) => (
       <>
-        <span className="figure block text-xs text-ink-3">
+        <span className="code block text-xs text-ink-3">
           {r.warehouse_id} · {r.location_id}
         </span>
-        <span className="block max-w-56 truncate text-ink-2">{r["warehouse.name"] ?? "—"}</span>
+        <span className="block max-w-56 truncate">{r["warehouse.name"] ?? "—"}</span>
       </>
     ),
   },
-  { key: "lot", label: "Lot", field: "lot_id", render: (r) => <span className="figure text-xs">{r.lot_id ?? "—"}</span> },
+  { key: "lot", label: "Lot", field: "lot_id", render: (r) => <span className="code text-xs">{r.lot_id ?? "—"}</span> },
   {
     key: "status",
     label: "Stock status",
     field: "stock_status",
-    render: (r) => <span className="text-xs text-ink-2">{humanize(r.stock_status as string)}</span>,
+    render: (r) => <span className="text-xs">{humanize(r.stock_status as string)}</span>,
   },
   {
     key: "qty",
@@ -96,7 +91,7 @@ const COLUMNS: Col[] = [
   },
 ];
 
-function Select({
+function FilterSelect({
   label,
   value,
   options,
@@ -108,21 +103,16 @@ function Select({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1">
-      <span className="eyebrow">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 rounded-sm border border-line bg-surface px-2 text-sm text-ink"
-      >
+    <Field label={label}>
+      <Select value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">All</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
-      </select>
-    </label>
+      </Select>
+    </Field>
   );
 }
 
@@ -202,56 +192,46 @@ export function InventoryExplorer() {
   const f = filters.data;
   return (
     <div className="mx-auto max-w-[96rem] space-y-5">
-      <div className="rise">
-        <p className="eyebrow">Inventory</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">Stock on hand</h1>
-        <p className="mt-1 text-sm text-ink-3">
-          Every stock line in your scope, item × warehouse × location × lot.
-          {!canSeeCost && " Cost columns are hidden for your role."}
-        </p>
-      </div>
+      <PageHeader
+        title="Stock on hand"
+        description={
+          <>
+            Every stock line in your scope, item × warehouse × location × lot.
+            {!canSeeCost && " Cost columns are hidden for your role."}
+          </>
+        }
+      />
 
-      <div className="rise grid grid-cols-2 gap-3 rounded-md border border-line bg-surface p-4 md:grid-cols-6" style={{ animationDelay: "60ms" }}>
-        <label className="col-span-2 flex flex-col gap-1">
-          <span className="eyebrow">Search</span>
-          <span className="flex h-9 items-center gap-2 rounded-sm border border-line bg-surface px-2">
-            <Search size={14} className="text-ink-3" aria-hidden />
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              maxLength={100}
-              placeholder="Item code or description"
-              className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-3"
-              aria-label="Search items"
-            />
-          </span>
-        </label>
-        <Select
+      <div className="rise panel grid grid-cols-2 gap-x-3 gap-y-4 p-4 md:grid-cols-6 sm:p-5" style={enterDelay(1)}>
+        <Field label="Search" className="col-span-2">
+          <SearchInput value={term} onChange={(e) => setTerm(e.target.value)} maxLength={100} placeholder="Item code or description" aria-label="Search items" />
+        </Field>
+        <FilterSelect
           label="Warehouse"
           value={query.warehouse ?? ""}
           options={(f?.warehouses ?? []).map((w) => ({ value: w.id, label: w.name ? `${w.id} · ${w.name}` : w.id }))}
           onChange={(v) => update({ warehouse: v })}
         />
-        <Select
+        <FilterSelect
           label="Item group"
           value={query.item_group ?? ""}
           options={(f?.item_groups ?? []).map((g) => ({ value: g, label: humanize(g) }))}
           onChange={(v) => update({ item_group: v })}
         />
-        <Select
+        <FilterSelect
           label="ABC (assigned)"
           value={query.abc ?? ""}
           options={(f?.abc_classes ?? []).map((g) => ({ value: g, label: g }))}
           onChange={(v) => update({ abc: v })}
         />
-        <Select
+        <FilterSelect
           label="Stage"
           value={query.stage ?? ""}
           options={(f?.stages ?? []).map((g) => ({ value: g, label: humanize(g) }))}
           onChange={(v) => update({ stage: v })}
         />
         {(f?.stock_statuses?.length ?? 0) > 0 && (
-          <Select
+          <FilterSelect
             label="Stock status"
             value={query.status ?? ""}
             options={(f?.stock_statuses ?? []).map((g) => ({ value: g, label: humanize(g) }))}
@@ -265,7 +245,7 @@ export function InventoryExplorer() {
         subtitle={balances.data?.page ? `${formatNumber(balances.data.page.total)} lines match` : undefined}
         provenance={balances.data?.provenance}
         warnings={balances.data?.warnings.filter((w) => w.code !== "auto_grouped" && w.code !== "truncated")}
-        style={{ animationDelay: "120ms" }}
+        style={enterDelay(2)}
       >
         {balances.isPending ? (
           <Skeleton className="h-96 w-full" />
@@ -273,75 +253,58 @@ export function InventoryExplorer() {
           <ErrorState error={balances.error} />
         ) : (
           <>
-            <div className="-mx-4 overflow-x-auto sm:-mx-5">
-              <table className="w-full min-w-[60rem] text-sm" aria-busy={balances.isFetching} data-testid="balances-table">
-                <thead>
-                  <tr className="border-y border-line">
-                    {columns.map((c) => {
-                      const active = c.sort && query.sort === c.sort;
-                      return (
-                        <th
-                          key={c.key}
-                          scope="col"
-                          aria-sort={active ? (query.dir === "asc" ? "ascending" : "descending") : undefined}
-                          className={clsx("eyebrow px-4 py-2 font-semibold sm:px-5", c.align === "right" ? "text-right" : "text-left")}
-                        >
-                          {c.sort ? (
-                            <button
-                              type="button"
-                              onClick={() => sortBy(c)}
-                              className={clsx("inline-flex items-center gap-1 uppercase hover:text-ink", active && "text-ink")}
-                            >
-                              {c.label}
-                              {active && (query.dir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-                            </button>
-                          ) : (
-                            c.label
-                          )}
-                        </th>
-                      );
-                    })}
+            <DataTable minWidth="60rem" busy={balances.isFetching} testId="balances-table">
+              <thead>
+                <HeadRow>
+                  {columns.map((c) => (
+                    <Th
+                      key={c.key}
+                      align={c.align}
+                      sort={c.sort ? { active: query.sort === c.sort, dir: query.dir === "asc" ? "asc" : "desc", onSort: () => sortBy(c) } : undefined}
+                    >
+                      {c.label}
+                    </Th>
+                  ))}
+                </HeadRow>
+              </thead>
+              <tbody>
+                {balances.data?.data.length === 0 && (
+                  <tr>
+                    <td colSpan={columns.length} className="px-5 py-10 text-center text-sm text-ink-3">
+                      No stock lines match these filters.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {balances.data?.data.length === 0 && (
-                    <tr>
-                      <td colSpan={columns.length} className="px-5 py-10 text-center text-sm text-ink-3">
-                        No stock lines match these filters.
-                      </td>
-                    </tr>
-                  )}
-                  {balances.data?.data.map((r, i) => {
-                    const sel: Selection = { kind: "item", id: String(r.item_id), label: [r.item_code, r.description].filter(Boolean).join(" · ") };
-                    return (
-                      <tr
-                        key={`${r.item_id}-${r.warehouse_id}-${r.location_id}-${r.lot_id}-${i}`}
-                        className="group/row border-b border-line/70 hover:bg-surface-2/60"
-                        {...analyzableProps(sel)}
-                        onContextMenu={(e) => {
-                          if (e.shiftKey) return;
-                          e.preventDefault();
-                          analyze(sel);
-                        }}
-                      >
-                        {columns.map((c, ci) => (
-                          <td key={c.key} className={clsx("px-4 py-2 align-top sm:px-5", c.align === "right" && "text-right")}>
-                            {ci === 0 ? (
-                              <div className="flex items-start gap-1">
-                                <div className="min-w-0 flex-1">{c.render(r)}</div>
-                                <AnalyzeButton sel={sel} className="-mt-0.5 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" />
-                              </div>
-                            ) : (
-                              c.render(r)
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                )}
+                {balances.data?.data.map((r, i) => {
+                  const sel: Selection = { kind: "item", id: String(r.item_id), label: [r.item_code, r.description].filter(Boolean).join(" · ") };
+                  return (
+                    <Tr
+                      key={`${r.item_id}-${r.warehouse_id}-${r.location_id}-${r.lot_id}-${i}`}
+                      className="group/row"
+                      {...analyzableProps(sel)}
+                      onContextMenu={(e) => {
+                        if (e.shiftKey) return;
+                        e.preventDefault();
+                        analyze(sel);
+                      }}
+                    >
+                      {columns.map((c, ci) => (
+                        <Td key={c.key} align={c.align}>
+                          {ci === 0 ? (
+                            <div className="flex items-start gap-1">
+                              <div className="min-w-0 flex-1">{c.render(r)}</div>
+                              <AnalyzeButton sel={sel} className="-mt-0.5 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" />
+                            </div>
+                          ) : (
+                            c.render(r)
+                          )}
+                        </Td>
+                      ))}
+                    </Tr>
+                  );
+                })}
+              </tbody>
+            </DataTable>
             {balances.data?.page && <Pager page={balances.data.page} onChange={(offset) => update({ offset })} />}
           </>
         )}

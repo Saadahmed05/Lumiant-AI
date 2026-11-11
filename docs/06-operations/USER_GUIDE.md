@@ -1,8 +1,8 @@
 # User Guide
 
 What you can do depends on your role; options you cannot use are not shown. Everything you see comes from your organisation's
-data warehouse, limited to the warehouses you are allowed to view. The orange SYNTHETIC badge means the data is generated
-demonstration data.
+data warehouse, limited to the warehouses you are allowed to view. The SYNTHETIC label next to the organisation name means the data is
+generated demonstration data.
 
 | Page | Use it to |
 |---|---|
@@ -37,3 +37,7 @@ permissions, the rule used, the data time and the number of rows.
 - A dash (—) means missing in the source, not zero.
 - Amounts in different currencies or units are shown separately.
 - Exports are recorded in the audit log.
+- Light or dark follows your device setting. The sun/moon button in the top bar switches it and remembers your choice;
+  "Theme: match system" in the command palette (⌘K / Ctrl+K) goes back to the device setting.
+- Numbers use aligned digits so columns line up; codes you might copy into another system (item codes, lot numbers) are
+  in a typewriter-style font.

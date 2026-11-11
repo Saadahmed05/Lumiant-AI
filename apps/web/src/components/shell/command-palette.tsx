@@ -2,14 +2,14 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
-import { CornerDownLeft, LogOut, type LucideIcon, Package, PanelLeft, Search, SunMoon, Sparkles } from "lucide-react";
+import { CornerDownLeft, LogOut, type LucideIcon, Monitor, Package, PanelLeft, Search, SunMoon, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Dialog } from "radix-ui";
 import { useEffect, useRef, useState } from "react";
 
 import type { NavItem } from "@/components/shell/nav";
 import { toggleRail } from "@/components/shell/rail-state";
-import { toggleTheme } from "@/components/shell/theme-toggle";
+import { matchSystemTheme, toggleTheme } from "@/components/shell/theme-toggle";
 import { api, type Envelope, type Row } from "@/lib/api";
 import { DUR, EASE, floatIn, REDUCED_DUR } from "@/lib/motion";
 
@@ -91,7 +91,7 @@ function Item({
       keywords={keywords}
       onSelect={onSelect}
       forceMount={forceMount}
-      className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm text-ink-2 transition-colors data-[selected=true]:bg-surface-2 data-[selected=true]:text-ink"
+      className="flex cursor-pointer items-center gap-3 rounded-control px-3 py-2 text-sm text-ink-2 transition-colors data-[selected=true]:bg-surface-2 data-[selected=true]:text-ink"
     >
       <Icon size={16} aria-hidden className="shrink-0 text-ink-3" />
       {children}
@@ -173,7 +173,7 @@ export function CommandPalette({ open, onOpenChange, nav, canSearchMaterials, ca
               >
                 <motion.div
                   {...floatIn(reduce)}
-                  className="pointer-events-auto w-full max-w-2xl overflow-hidden rounded-xl border border-glass-line bg-glass-strong shadow-e3 backdrop-blur-xl"
+                  className="pointer-events-auto w-full max-w-2xl overflow-hidden rounded-float border border-line-strong bg-glass-strong shadow-e3 backdrop-blur-xl"
                   data-testid="command-palette"
                 >
                   <Dialog.Title className="sr-only">Command palette</Dialog.Title>
@@ -185,7 +185,7 @@ export function CommandPalette({ open, onOpenChange, nav, canSearchMaterials, ca
                         value={search}
                         onValueChange={setSearch}
                         placeholder={canAsk ? "Jump to a page, find a material, or ask a question…" : "Jump to a page or find a material…"}
-                        className="h-13 w-full bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-ink-3"
+                        className="h-13 w-full bg-transparent text-title text-ink outline-none placeholder:text-ink-3"
                       />
                       <kbd aria-hidden>esc</kbd>
                     </div>
@@ -219,7 +219,7 @@ export function CommandPalette({ open, onOpenChange, nav, canSearchMaterials, ca
                               forceMount
                               onSelect={() => run(() => onNavigate(`/inventory?q=${encodeURIComponent(m.code)}`))}
                             >
-                              <span className="figure shrink-0 text-xs text-ink-3">{m.code}</span>
+                              <span className="code shrink-0 text-xs text-ink-3">{m.code}</span>
                               <span className="truncate">{m.description ?? "—"}</span>
                               <span className="ml-auto shrink-0 text-xs text-ink-3">View stock</span>
                             </Item>
@@ -242,6 +242,9 @@ export function CommandPalette({ open, onOpenChange, nav, canSearchMaterials, ca
                         <Item value="Toggle light or dark theme" keywords={["appearance", "mode"]} icon={SunMoon} onSelect={() => run(toggleTheme)}>
                           Toggle light / dark theme
                         </Item>
+                        <Item value="Match system theme" keywords={["appearance", "mode", "auto", "os"]} icon={Monitor} onSelect={() => run(matchSystemTheme)}>
+                          Theme: match system
+                        </Item>
                         <Item value="Collapse or expand navigation" keywords={["sidebar", "rail"]} icon={PanelLeft} onSelect={() => run(toggleRail)}>
                           Collapse / expand navigation
                           <Keys keys={["["]} />
@@ -251,7 +254,7 @@ export function CommandPalette({ open, onOpenChange, nav, canSearchMaterials, ca
                         </Item>
                       </Command.Group>
                     </Command.List>
-                    <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2 text-[0.6875rem] text-ink-3" aria-hidden>
+                    <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2 text-caption text-ink-3" aria-hidden>
                       <span className="flex items-center gap-1.5">
                         <kbd>↑</kbd>
                         <kbd>↓</kbd> move <kbd>↵</kbd> open

@@ -1,53 +1,50 @@
 @import "tailwindcss";
 
-/* Light is the opt-in theme (dark is the default); `light:` styles the few things that differ by theme. */
+/* Light applies when [data-theme="light"] is on <html>: the saved choice, or the OS setting (public/theme-init.js). */
 @custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
 /* Collapsed icon rail ([data-rail="collapsed"] on <html>, set before first paint): labels become screen-reader only. */
 @custom-variant rail-collapsed (&:where([data-rail="collapsed"] *));
 
 /*
- * Lumiant "command center" design tokens (docs/02-architecture/FRONTEND.md § Design tokens).
+ * Lumiant design tokens (docs/02-architecture/FRONTEND.md § Design tokens, ADR-0011).
  *
- * Dark-first: :root is the dark theme; light applies only when the viewer picks it ([data-theme="light"], set
- * before first paint by public/theme-init.js). One working accent (teal) for UI, one signal accent (amber) reserved
- * for things that need attention. Data colors (--viz-*, --status-*) are a separate, validated set: UI accents are never
- * used as series colors. Every text pair is WCAG AA (contrast.mjs, TEST_RUNS D1-1); the viz palette passes the
- * dataviz validator in both modes (TEST_RUNS D1-2).
+ * Graphite neutrals with one working accent (emerald) for UI and one signal accent (amber) reserved for things that
+ * need attention. :root is the dark theme; [data-theme="light"] is set before first paint from the saved choice or,
+ * with none saved, from the OS setting. Data colors (--viz-*, --status-*) are a separate, validated set: UI accents
+ * are never used as series colors. Every text pair is WCAG AA (TEST_RUNS S07-1).
  */
 :root {
   /* planes: page → panel → raised (hover, inputs) → floating (popovers, palette) */
-  --bg: #080a0d;
-  --surface: #0f1318;
-  --surface-2: #161b22;
-  --surface-3: #1d242d;
-  /* ink: primary ≥ 13:1, secondary ≥ 7.7:1, muted ≥ 4.9:1 on every plane */
-  --ink: #e9edf1;
-  --ink-2: #aeb8c4;
-  --ink-3: #8592a0;
-  --line: #222a33;
-  --line-strong: #34404d;
-  /* form-control boundary, ≥ 3:1 on surface (WCAG 1.4.11) */
-  --control-line: #5c6776;
-  --accent: #3ccfbf;
-  --accent-ink: #04201d;
-  --accent-soft: #0d2a28;
-  --signal: #ffa155;
-  --signal-soft: #2e1d10;
+  --bg: #0b0c0e;
+  --surface: #121316;
+  --surface-2: #191b1f;
+  --surface-3: #212328;
+  --ink: #edeef0;
+  --ink-2: #b4b8bf;
+  --ink-3: #8f949d;
+  --line: #24262b;
+  --line-strong: #33363d;
+  /* form-control boundary, ≥ 3:1 on every plane (WCAG 1.4.11) */
+  --control-line: #6c717b;
+  --accent: #3fcf9e;
+  --accent-strong: #62dbb2;
+  --accent-ink: #04231a;
+  --accent-soft: #0e2a22;
+  --signal: #f0a04b;
+  --signal-soft: #2c1d0f;
   --ok: #5fd38d;
 
-  /* glass + elevation: light from above (inner top highlight), depth from soft drop shadows */
-  --glass: rgb(13 17 22 / 0.72);
-  --glass-strong: rgb(17 22 28 / 0.9);
+  /* glass is only for chrome that floats over scrolling content (command bar, palette, dock) */
+  --glass: rgb(11 12 14 / 0.78);
+  --glass-strong: rgb(18 19 22 / 0.94);
   --glass-line: rgb(255 255 255 / 0.07);
-  --highlight: rgb(255 255 255 / 0.045);
-  --elev-1: inset 0 1px 0 0 var(--highlight), 0 1px 2px 0 rgb(0 0 0 / 0.45);
-  --elev-2: inset 0 1px 0 0 var(--highlight), 0 10px 28px -10px rgb(0 0 0 / 0.65);
-  --elev-3: inset 0 1px 0 0 var(--highlight), 0 0 0 1px var(--glass-line), 0 28px 72px -18px rgb(0 0 0 / 0.8);
-  --glow: 0 0 0 1px rgb(60 207 191 / 0.4), 0 0 22px -4px rgb(60 207 191 / 0.45);
-  --scrim: rgb(3 5 8 / 0.62);
-  --ambient-1: rgb(60 207 191 / 0.07);
-  --ambient-2: rgb(57 135 229 / 0.06);
-  --grid: rgb(233 237 241 / 0.022);
+  --highlight: rgb(255 255 255 / 0.04);
+  --elev-1: inset 0 1px 0 0 var(--highlight), 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --elev-2: inset 0 1px 0 0 var(--highlight), 0 12px 28px -12px rgb(0 0 0 / 0.6);
+  --elev-3: inset 0 1px 0 0 var(--highlight), 0 0 0 1px var(--glass-line), 0 28px 64px -20px rgb(0 0 0 / 0.75);
+  /* the accent edge of an active or selected thing: a hairline, never a glow */
+  --ring-accent: 0 0 0 1px color-mix(in oklab, var(--accent) 50%, transparent);
+  --scrim: rgb(4 5 6 / 0.6);
 
   /* data viz (dataviz reference palette, dark steps; fixed order, never cycled) */
   --viz-1: #3987e5;
@@ -58,14 +55,19 @@
   --viz-6: #008300;
   --viz-7: #9085e9;
   --viz-8: #e66767;
-  --viz-grid: #222a33;
-  --viz-axis: #3a4654;
-  --viz-cursor: rgb(233 237 241 / 0.05);
+  --viz-grid: #24262b;
+  --viz-axis: #3a3d45;
+  --viz-cursor: rgb(237 238 240 / 0.05);
   /* status: reserved meaning, always shown with an icon + label */
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-serious: #ec835a;
-  --status-critical: #d03b3b;
+  --status-critical: #e05252;
+
+  /* shape: controls, panels, floating layers; pills use rounded-full */
+  --r-control: 0.5rem;
+  --r-panel: 0.75rem;
+  --r-float: 0.875rem;
 
   /* motion (mirrors src/lib/motion.ts — change both together) */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -96,35 +98,32 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f2f4f7;
+  --bg: #f6f7f8;
   --surface: #ffffff;
-  --surface-2: #eceff3;
+  --surface-2: #f0f1f3;
   --surface-3: #ffffff;
-  --ink: #0c1117;
-  --ink-2: #3b4652;
-  --ink-3: #5a6573;
-  --line: #dde2e8;
-  --line-strong: #c3cbd5;
-  --control-line: #7c8795;
-  --accent: #0a7468;
+  --ink: #111316;
+  --ink-2: #41454d;
+  --ink-3: #5f656f;
+  --line: #e3e5e9;
+  --line-strong: #cdd1d7;
+  --control-line: #7d838d;
+  --accent: #0a7556;
+  --accent-strong: #086247;
   --accent-ink: #ffffff;
-  --accent-soft: #d6efeb;
-  --signal: #b2440a;
-  --signal-soft: #fbe6d8;
+  --accent-soft: #dcf3ea;
+  --signal: #a8480c;
+  --signal-soft: #fbe9d9;
   --ok: #1f7440;
 
-  --glass: rgb(255 255 255 / 0.74);
-  --glass-strong: rgb(255 255 255 / 0.92);
-  --glass-line: rgb(12 17 23 / 0.08);
+  --glass: rgb(255 255 255 / 0.8);
+  --glass-strong: rgb(255 255 255 / 0.95);
+  --glass-line: rgb(17 19 22 / 0.08);
   --highlight: rgb(255 255 255 / 0.9);
-  --elev-1: 0 1px 2px 0 rgb(12 17 23 / 0.06), 0 0 0 1px rgb(12 17 23 / 0.02);
-  --elev-2: 0 10px 28px -12px rgb(12 17 23 / 0.18);
-  --elev-3: 0 0 0 1px var(--glass-line), 0 28px 72px -20px rgb(12 17 23 / 0.3);
-  --glow: 0 0 0 1px rgb(10 116 104 / 0.35), 0 0 18px -6px rgb(10 116 104 / 0.35);
-  --scrim: rgb(12 17 23 / 0.32);
-  --ambient-1: rgb(10 116 104 / 0.06);
-  --ambient-2: rgb(42 120 214 / 0.05);
-  --grid: rgb(12 17 23 / 0.03);
+  --elev-1: 0 1px 2px 0 rgb(17 19 22 / 0.05), 0 0 0 1px rgb(17 19 22 / 0.02);
+  --elev-2: 0 12px 28px -14px rgb(17 19 22 / 0.18);
+  --elev-3: 0 0 0 1px var(--glass-line), 0 28px 64px -22px rgb(17 19 22 / 0.28);
+  --scrim: rgb(17 19 22 / 0.32);
 
   --viz-1: #2a78d6;
   --viz-2: #eb6834;
@@ -134,9 +133,10 @@
   --viz-6: #008300;
   --viz-7: #6250d6;
   --viz-8: #e34948;
-  --viz-grid: #e3e7ec;
-  --viz-axis: #c3cbd5;
-  --viz-cursor: rgb(12 17 23 / 0.04);
+  --viz-grid: #e3e5e9;
+  --viz-axis: #cdd1d7;
+  --viz-cursor: rgb(17 19 22 / 0.04);
+  --status-critical: #c93030;
   color-scheme: light;
 }
 
@@ -152,6 +152,7 @@
   --color-line-strong: var(--line-strong);
   --color-control-line: var(--control-line);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-signal: var(--signal);
@@ -176,12 +177,33 @@
   --shadow-e1: var(--elev-1);
   --shadow-e2: var(--elev-2);
   --shadow-e3: var(--elev-3);
-  --shadow-glow: var(--glow);
+  --shadow-ring: var(--ring-accent);
+  /* one radius rule: rounded-control (buttons, inputs, tabs), rounded-panel (cards), rounded-float (popovers, dialogs) */
+  --radius-control: var(--r-control);
+  --radius-panel: var(--r-panel);
+  --radius-float: var(--r-float);
+  /* type scale beyond Tailwind's xs (12) and sm (14) */
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1rem;
+  --text-dense: 0.8125rem;
+  --text-dense--line-height: 1.25rem;
+  --text-title: 0.9375rem;
+  --text-title--line-height: 1.375rem;
+  --text-title--letter-spacing: -0.006em;
+  --text-section: 1.125rem;
+  --text-section--line-height: 1.5rem;
+  --text-section--letter-spacing: -0.012em;
+  --text-page: 1.625rem;
+  --text-page--line-height: 2rem;
+  --text-page--letter-spacing: -0.022em;
+  --text-kpi: 1.75rem;
+  --text-kpi--line-height: 2.125rem;
+  --text-kpi--letter-spacing: -0.02em;
   --ease-out: var(--ease-out-expo);
   --ease-in-out: var(--ease-in-out-smooth);
   --default-transition-duration: var(--dur-fast);
   --default-transition-timing-function: var(--ease-out-expo);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -193,24 +215,11 @@ body {
 
 body {
   font-family: var(--font-sans);
-  font-feature-settings: "ss01" 1, "cv11" 1;
+  /* Inter: open digits and an l with a tail, so codes and amounts are never ambiguous */
+  font-feature-settings: "calt" 1, "ss01" 1, "cv05" 1;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   scrollbar-color: var(--line-strong) transparent;
-}
-
-/* Ambient light + faint grid behind the glass layers. A fixed layer, not background-attachment: fixed (no repaint on scroll). */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    radial-gradient(70rem 36rem at 8% -12%, var(--ambient-1), transparent 62%),
-    radial-gradient(56rem 30rem at 100% -6%, var(--ambient-2), transparent 60%),
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: auto, auto, 32px 32px, 32px 32px;
 }
 
 ::selection {
@@ -218,33 +227,56 @@ body::before {
   color: var(--ink);
 }
 
-.figure {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "zero" 1;
+/* One icon weight everywhere (lucide draws at 2 by default). */
+.lucide {
+  stroke-width: 1.75;
 }
 
+/* Numbers: the UI sans with fixed-width digits, so columns align without looking like a terminal. */
+.figure {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Identifiers: item codes, warehouse ids, lot numbers, request refs, SQL. */
+.code {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Small label for a column or a figure. Not for page or section headings. */
 .eyebrow {
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink-3);
 }
 
-/* Frosted layer for chrome that floats over content (command bar, rail, popovers, palette). */
+/* Frosted layer for chrome that floats over scrolling content (command bar, popovers, palette). */
 @utility glass {
   background-color: var(--glass);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 /* Elevated panel: the one card recipe every widget uses. */
 @utility panel {
   background-color: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 0.625rem;
+  border-radius: var(--r-panel);
   box-shadow: var(--elev-1);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  [class*="backdrop-blur"] {
+    background-color: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 kbd,
@@ -253,9 +285,8 @@ kbd,
   font-size: 0.625rem;
   line-height: 1;
   padding: 0.2rem 0.32rem;
-  border-radius: 0.25rem;
+  border-radius: 0.3125rem;
   border: 1px solid var(--line-strong);
-  border-bottom-width: 2px;
   color: var(--ink-3);
   background: var(--surface-2);
 }
@@ -267,10 +298,8 @@ kbd,
 
 [cmdk-group-heading] {
   padding: 0.5rem 0.75rem 0.25rem;
-  font-size: 0.625rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 500;
   color: var(--ink-3);
 }
 
@@ -357,22 +386,19 @@ kbd,
 }
 
 /*
- * Analyst Lens (ADR-0010): while [data-lens] is on <html>, everything the user can ask about is outlined; hovering lifts
- * it with the accent glow, selected elements stay lit. Clicks are captured by lens.tsx.
+ * Analyst Lens (ADR-0010): while [data-lens] is on <html>, everything the user can ask about is outlined; hovering
+ * marks it with the accent edge, selected elements stay marked. Clicks are captured by lens.tsx.
  */
 :root[data-lens] [data-analyzable] {
   cursor: crosshair;
   outline: 1px dashed color-mix(in oklab, var(--accent) 45%, transparent);
   outline-offset: 3px;
-  border-radius: 0.75rem;
-  transition:
-    outline-color var(--dur-fast) var(--ease-out-expo),
-    box-shadow var(--dur-fast) var(--ease-out-expo);
+  border-radius: var(--r-panel);
+  transition: outline-color var(--dur-fast) var(--ease-out-expo);
 }
 
 :root[data-lens] [data-analyzable]:hover {
   outline: 2px solid var(--accent);
-  box-shadow: var(--glow);
 }
 
 :root[data-lens] [data-analyzable] [data-analyzable]:hover {
@@ -382,12 +408,11 @@ kbd,
 [data-analyzable][data-selected] {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 0.75rem;
-  box-shadow: var(--glow);
+  border-radius: var(--r-panel);
 }
 
 :root[data-lens] main {
-  background-image: radial-gradient(circle at 50% 0, var(--ambient-1), transparent 60%);
+  background-image: linear-gradient(to bottom, color-mix(in oklab, var(--accent) 5%, transparent), transparent 18rem);
 }
 
 /* Wide screens keep the page readable beside the open Analyst dock instead of covering it. */
@@ -449,9 +474,6 @@ kbd,
     background: #fff !important;
     color: #000 !important;
   }
-  body::before {
-    display: none;
-  }
   main {
     padding: 0 !important;
   }
@@ -460,4 +482,9 @@ kbd,
     box-shadow: none !important;
     backdrop-filter: none !important;
   }
+}
+
+/* A money KPI shrinks with its tile instead of running past the edge (long amounts in a narrow column). */
+.kpi-fit {
+  font-size: clamp(1.25rem, 10.5cqi, 1.75rem);
 }

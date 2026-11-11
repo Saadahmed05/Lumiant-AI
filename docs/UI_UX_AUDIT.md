@@ -5,6 +5,8 @@ Reviewed live on 2026-10-31 in the built-in browser against `next dev` and the A
 **Limits of this review:** dev build on a machine with about 1 GB of free memory, with the browser pane hidden for much of it. Timing is indicative only. No screen reader or full keyboard pass was done, and no axe run. With light mode emulated, the app stayed dark, and its theme toggle was not exercised, so **light mode was not assessed**.
 
 > **Update 2026-10-31:** UX-01 and UX-02 are fixed (ISSUES #40, #42). All other findings here remain open.
+>
+> **Update 2026-11-11:** the visual layer was refreshed at the owner's request (ADR-0011): new palette, typeface, shared controls, theme that follows the device. This review describes the look before that change. Its functional findings (UX-03 to UX-20) are untouched by the refresh and remain open, except that the plainer look of Risks, Costs, Reports and Admin noted in §1 no longer applies. Light mode, not assessed here, now has the same contrast gate as dark (TEST_RUNS S07-1).
 
 ## 1. Assessment
 

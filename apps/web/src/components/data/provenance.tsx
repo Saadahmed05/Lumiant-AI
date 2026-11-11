@@ -3,6 +3,9 @@
 import { FileSearch, X } from "lucide-react";
 import { Popover } from "radix-ui";
 
+import { Badge } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/button";
+import { floatSurface } from "@/components/ui/float";
 import type { FilterDescription, Provenance } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 
@@ -14,9 +17,9 @@ function describe(f: FilterDescription): string {
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[7.5rem_1fr] gap-3 border-t border-dashed border-line py-1.5 first:border-t-0">
-      <dt className="eyebrow pt-0.5">{label}</dt>
-      <dd className="min-w-0 text-[0.8125rem] text-ink-2">{children}</dd>
+    <div className="grid grid-cols-[7rem_1fr] gap-3 border-t border-line py-2 first:border-t-0">
+      <dt className="pt-px text-xs text-ink-3">{label}</dt>
+      <dd className="min-w-0 text-dense text-ink-2">{children}</dd>
     </div>
   );
 }
@@ -28,7 +31,7 @@ export function ProvenanceButton({ provenance, label = "Source" }: { provenance?
   return (
     <Popover.Root>
       <Popover.Trigger
-        className="inline-flex items-center gap-1 rounded-md border border-transparent px-1.5 py-0.5 text-xs font-medium text-ink-3 transition-colors hover:border-line hover:bg-surface-2 hover:text-ink data-[state=open]:border-accent/40 data-[state=open]:bg-accent-soft data-[state=open]:text-accent"
+        className="inline-flex h-6 items-center gap-1 rounded-control px-1.5 text-xs font-medium text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink data-[state=open]:bg-accent-soft data-[state=open]:text-accent"
         aria-label={`${label}: how this was calculated`}
       >
         <FileSearch size={13} aria-hidden />
@@ -39,32 +42,34 @@ export function ProvenanceButton({ provenance, label = "Source" }: { provenance?
           align="end"
           sideOffset={6}
           collisionPadding={12}
-          className="pop-enter z-(--z-overlay) w-[min(28rem,calc(100vw-1.5rem))] rounded-lg border border-line-strong bg-surface-3 p-4 shadow-e3"
+          className={`pop-enter z-(--z-overlay) w-[min(28rem,calc(100vw-1.5rem))] p-4 ${floatSurface}`}
         >
           <div className="mb-2 flex items-start justify-between gap-4">
             <div>
-              <p className="eyebrow">Provenance slip</p>
-              <p className="mt-0.5 text-sm font-semibold text-ink">{p.metric ? `${p.metric.id} · v${p.metric.version}` : p.dataset}</p>
+              <p className="text-xs text-ink-3">Provenance slip</p>
+              <p className="code mt-0.5 text-sm font-medium text-ink">{p.metric ? `${p.metric.id} · v${p.metric.version}` : p.dataset}</p>
             </div>
-            <Popover.Close className="rounded-md p-1 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink" aria-label="Close">
-              <X size={14} />
+            <Popover.Close asChild>
+              <IconButton size="sm" aria-label="Close">
+                <X size={14} />
+              </IconButton>
             </Popover.Close>
           </div>
           <dl className="max-h-[60vh] overflow-auto">
             <Row label="Source">
               {p.source_system}
-              {p.synthetic && <span className="ml-2 rounded-[2px] border border-line-strong px-1 text-[0.625rem] font-bold text-ink-2">SYNTHETIC</span>}
+              {p.synthetic && <Badge className="ml-2">SYNTHETIC</Badge>}
               {p.data_classification === "customer_extract" && (
-                <span className="ml-2 rounded-[2px] border border-signal px-1 text-[0.625rem] font-bold text-signal">CLIENT EXTRACT</span>
+                <Badge tone="signal" className="ml-2">CLIENT EXTRACT</Badge>
               )}
             </Row>
             <Row label="Objects">
-              <span className="figure text-xs">{p.source_objects.join(", ")}</span>
+              <span className="code text-xs">{p.source_objects.join(", ")}</span>
             </Row>
             <Row label="Fields">
               <ul className="space-y-0.5">
                 {Object.entries(p.fields).map(([canonical, physical]) => (
-                  <li key={canonical} className="figure break-words text-xs">
+                  <li key={canonical} className="code break-words text-xs">
                     <span className="text-ink">{canonical}</span> ← {physical}
                   </li>
                 ))}
@@ -72,7 +77,7 @@ export function ProvenanceButton({ provenance, label = "Source" }: { provenance?
             </Row>
             <Row label="Your filters">
               {p.filters.user.length ? (
-                <ul className="figure space-y-0.5 text-xs">
+                <ul className="code space-y-0.5 text-xs">
                   {p.filters.user.map((f, i) => (
                     <li key={i}>{describe(f)}</li>
                   ))}
@@ -83,7 +88,7 @@ export function ProvenanceButton({ provenance, label = "Source" }: { provenance?
             </Row>
             <Row label="Access scope">
               {p.filters.injected.length ? (
-                <ul className="figure space-y-0.5 text-xs">
+                <ul className="code space-y-0.5 text-xs">
                   {p.filters.injected.map((f, i) => (
                     <li key={i}>{describe(f)} <span className="text-ink-3">(applied by your permissions)</span></li>
                   ))}
@@ -108,7 +113,7 @@ export function ProvenanceButton({ provenance, label = "Source" }: { provenance?
               <Row label="SQL">
                 <details>
                   <summary className="cursor-pointer text-xs text-accent">show generated SQL</summary>
-                  <pre className="figure mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-bg p-2 text-[0.6875rem] leading-snug">{p.sql}</pre>
+                  <pre className="code mt-1.5 max-h-48 overflow-auto whitespace-pre-wrap rounded-control border border-line bg-bg p-2.5 text-caption leading-snug">{p.sql}</pre>
                 </details>
               </Row>
             )}

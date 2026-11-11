@@ -7,9 +7,12 @@ import { useState } from "react";
 
 import { ProvenanceButton } from "@/components/data/provenance";
 import { SimpleTable, type SimpleColumn } from "@/components/data/simple-table";
+import { Chip } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/button";
 import type { BarBlock, Block, ChatAnswer, ColumnKind, Step, TableBlock } from "@/lib/agent";
 import { api, type Row } from "@/lib/api";
 import { formatMoney, formatNumber, formatQuantity } from "@/lib/format";
+import { enterDelay } from "@/lib/motion";
 
 function cell(kind: ColumnKind, row: Row, key: string) {
   const v = row[key];
@@ -30,7 +33,7 @@ export function TableView({ block, compact }: { block: TableBlock; compact?: boo
   }));
   return (
     <div className="min-w-0">
-      <p className="eyebrow mb-1">{block.title}</p>
+      <p className="mb-1.5 text-dense font-medium text-ink-2">{block.title}</p>
       <SimpleTable columns={columns} rows={block.rows} empty="Nothing to show." rowKey={(_, i) => String(i)} minWidth={compact ? "22rem" : "30rem"} />
     </div>
   );
@@ -41,19 +44,19 @@ export function BarView({ block }: { block: BarBlock }) {
   for (const r of block.rows) groups.set(String(r[block.unit_key] ?? ""), [...(groups.get(String(r[block.unit_key] ?? "")) ?? []), r]);
   return (
     <div className="space-y-3">
-      <p className="eyebrow">{block.title}</p>
+      <p className="text-dense font-medium text-ink-2">{block.title}</p>
       {[...groups.entries()].map(([unit, rows]) => {
         const max = Math.max(...rows.map((r) => Number(r[block.value_key])), 0) || 1;
         return (
           <div key={unit} className="space-y-1.5">
-            {groups.size > 1 && <p className="figure text-xs text-ink-3">{unit}</p>}
+            {groups.size > 1 && <p className="text-xs text-ink-3">{unit}</p>}
             {rows.map((r, i) => (
               <div key={i} className="grid grid-cols-[minmax(5rem,10rem)_1fr_auto] items-center gap-3 text-sm">
                 <span className="truncate text-ink-2" title={String(r[block.label_key] ?? "")}>{String(r[block.label_key] ?? "Not set")}</span>
-                <span className="h-2.5 overflow-hidden rounded-full bg-surface-2">
+                <span className="h-2 overflow-hidden rounded-full bg-surface-2">
                   <span
                     className="bar-grow block h-full rounded-full bg-(--viz-1)"
-                    style={{ width: `${(Number(r[block.value_key]) / max) * 100}%`, animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                    style={{ width: `${(Number(r[block.value_key]) / max) * 100}%`, ...enterDelay(i) }}
                   />
                 </span>
                 <span className="figure text-xs text-ink">
@@ -122,8 +125,8 @@ export function Feedback({ turn }: { turn: number }) {
         <span className="text-xs">Thanks for the feedback</span>
       ) : (
         <>
-          <button type="button" onClick={() => send.mutate("up")} className="rounded-sm p-1 hover:bg-surface-2 hover:text-ink" aria-label="Helpful"><ThumbsUp size={14} /></button>
-          <button type="button" onClick={() => send.mutate("down")} className="rounded-sm p-1 hover:bg-surface-2 hover:text-ink" aria-label="Not helpful"><ThumbsDown size={14} /></button>
+          <IconButton size="sm" onClick={() => send.mutate("up")} aria-label="Helpful"><ThumbsUp size={14} /></IconButton>
+          <IconButton size="sm" onClick={() => send.mutate("down")} aria-label="Not helpful"><ThumbsDown size={14} /></IconButton>
         </>
       )}
     </span>
@@ -187,7 +190,7 @@ export function AnswerBody({
               onClick={() =>
                 onAsk(c.warehouse_id ? `compare cost of item ${c.item_id} in warehouse ${c.warehouse_id}` : `how much stock of item ${c.item_id}`)
               }
-              className="rounded-md border border-line-strong px-2.5 py-1.5 text-left text-xs hover:bg-surface-2"
+              className="rounded-control border border-line-strong bg-surface px-2.5 py-1.5 text-left text-xs transition-colors hover:border-control-line hover:bg-surface-2"
             >
               {c.label}
             </button>
@@ -197,9 +200,9 @@ export function AnswerBody({
       {r.follow_ups.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {r.follow_ups.map((f) => (
-            <button key={f} type="button" onClick={() => onAsk(f)} className="rounded-full border border-line px-3 py-1 text-xs text-ink-2 transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent">
+            <Chip key={f} size="sm" onClick={() => onAsk(f)}>
               {f}
-            </button>
+            </Chip>
           ))}
         </div>
       )}
@@ -208,7 +211,7 @@ export function AnswerBody({
           {MODE_LABEL[r.mode] ?? r.mode}
         </span>
         {r.grounding.passed && r.grounding.source === "model" && <span className="text-ok">numbers checked</span>}
-        {r.tool_calls.length > 0 && <span className="figure">used: {r.tool_calls.map((c) => c.name).join(", ")}</span>}
+        {r.tool_calls.length > 0 && <span className="code">used: {r.tool_calls.map((c) => c.name).join(", ")}</span>}
         {r.elapsed_ms !== undefined && <span className="figure">{r.elapsed_ms} ms</span>}
         {r.provenance.map((p, i) => (
           <ProvenanceButton key={i} provenance={p} label={r.provenance.length > 1 ? `Source ${i + 1}` : "Source"} />

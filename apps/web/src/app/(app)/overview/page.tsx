@@ -7,6 +7,8 @@ import { AreaBoard } from "@/components/overview/area-board";
 import { BelowReorderPanel } from "@/components/overview/below-reorder";
 import { InsightsFeed } from "@/components/overview/insights-feed";
 import { KpiStrip } from "@/components/overview/kpi-strip";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { useMetricList, usePageMe } from "@/lib/hooks";
 
 export default function OverviewPage() {
@@ -18,19 +20,15 @@ export default function OverviewPage() {
 
   return (
     <div className="@container mx-auto max-w-[96rem] space-y-6">
-      <div className="rise flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="eyebrow">Command center</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">Inventory position</h1>
-        </div>
-        {scope && (
-          <p className="text-sm text-ink-3">
-            {scope.all_warehouses
-              ? "All warehouses in this tenant"
-              : `Limited to ${scope.warehouses.length} warehouse${scope.warehouses.length === 1 ? "" : "s"} by your access scope`}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title="Inventory position"
+        actions={
+          scope &&
+          (scope.all_warehouses
+            ? "All warehouses in this tenant"
+            : `Limited to ${scope.warehouses.length} warehouse${scope.warehouses.length === 1 ? "" : "s"} by your access scope`)
+        }
+      />
 
       {metrics.isSuccess && <KpiStrip canSeeValue={canSeeValue} />}
 
@@ -40,15 +38,13 @@ export default function OverviewPage() {
 
       {metrics.isSuccess && canSeeValue ? (
         <div className="grid grid-cols-1 gap-4 @5xl:grid-cols-2">
-          <ValueBars metricId="inventory_value_by_warehouse" selectKind="warehouse" title="Value by warehouse" labelField="warehouse.name" codeField="warehouse_id" delay={200} />
-          <ValueBars metricId="inventory_value_by_item_group" selectKind="item_group" title="Value by item group" labelField="item.item_group" humanizeLabels delay={240} />
-          <ValueBars metricId="inventory_value_by_abc" selectKind="abc" title="Value by ABC class (as assigned in source)" labelField="item.abc_class" delay={280} />
-          <ValueBars metricId="inventory_value_by_stage" selectKind="stage" title="Value by inventory stage" labelField="item.inventory_stage" humanizeLabels delay={320} />
+          <ValueBars metricId="inventory_value_by_warehouse" selectKind="warehouse" title="Value by warehouse" labelField="warehouse.name" codeField="warehouse_id" index={0} />
+          <ValueBars metricId="inventory_value_by_item_group" selectKind="item_group" title="Value by item group" labelField="item.item_group" humanizeLabels index={1} />
+          <ValueBars metricId="inventory_value_by_abc" selectKind="abc" title="Value by ABC class (as assigned in source)" labelField="item.abc_class" index={2} />
+          <ValueBars metricId="inventory_value_by_stage" selectKind="stage" title="Value by inventory stage" labelField="item.inventory_stage" humanizeLabels index={3} />
         </div>
       ) : metrics.isSuccess ? (
-        <p className="flex items-center gap-2 rounded-md border border-dashed border-line-strong p-4 text-sm text-ink-3">
-          <Lock size={15} aria-hidden /> Value breakdowns are hidden because your role does not include cost access.
-        </p>
+        <EmptyState icon={Lock} title="Value breakdowns are hidden because your role does not include cost access." />
       ) : null}
 
       <div id="below-reorder" className="scroll-mt-20">

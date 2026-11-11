@@ -14,7 +14,7 @@ export function Warnings({ warnings }: { warnings?: ResultWarning[] }) {
   return (
     <ul className="mt-3 space-y-1.5">
       {warnings.map((w) => (
-        <li key={w.code} className="flex items-start gap-1.5 rounded-md bg-signal-soft/60 px-2 py-1.5 text-xs text-ink-2">
+        <li key={w.code} className="flex items-start gap-1.5 rounded-control bg-signal-soft/60 px-2.5 py-1.5 text-xs text-ink-2">
           <AlertTriangle size={13} className="mt-px shrink-0 text-signal" aria-hidden />
           <span>{w.message}</span>
         </li>
@@ -35,14 +35,14 @@ export function ErrorState({ error }: { error: unknown }) {
       </span>
       <span className="text-xs text-ink-3">
         {e?.message ?? "Unexpected error."}
-        {e?.requestId && <span className="figure"> · ref {e.requestId.slice(0, 12)}</span>}
+        {e?.requestId && <span className="code"> · ref {e.requestId.slice(0, 12)}</span>}
       </span>
     </div>
   );
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("skeleton rounded-md", className)} aria-hidden />;
+  return <div className={clsx("skeleton rounded-control", className)} aria-hidden />;
 }
 
 export function Panel({
@@ -83,9 +83,9 @@ export function Panel({
           : undefined
       }
     >
-      <header className="mb-3 flex items-start justify-between gap-3">
+      <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[0.9375rem] font-semibold tracking-tight text-ink">{title}</h2>
+          <h2 className="text-title font-semibold text-ink">{title}</h2>
           {subtitle && <p className="mt-0.5 text-xs text-ink-3">{subtitle}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1">

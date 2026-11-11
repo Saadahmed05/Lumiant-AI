@@ -19,7 +19,7 @@ Status as of 2026-10-27 (end of M1). "Verified (synthetic)" = proven on generate
 | 12 | Missing data produces an honest, useful response | M1 (dashboard) / M3 (chat) | **Verified (dashboard + chat)** | missing valuation price warning, no-policy counts, UoM mismatch warning, `analysis_unavailable`, stale/unknown freshness warnings |
 | 13 | Results displayed as tables and appropriate charts | M1/M4 | **Verified (synthetic)** | overview, inventory, assistant, reports; exports + print (`test_reports.py`, e2e) |
 | 14 | Provenance and timestamps visible where relevant | M1 | **Verified** | provenance slip (unit + e2e), data as-of in header |
-| 15 | Relevant automated tests pass | every M | **Verified** | `logs/TEST_RUNS.md` S04: API 375 passed + 6 env-gated skips; web unit 50; e2e 23/23; GitHub Actions green on all five jobs (`668216e`); audits 0 findings |
+| 15 | Relevant automated tests pass | every M | **Verified** | `logs/TEST_RUNS.md` S07 (web, 2026-11-11): lint/tsc clean, unit 74, e2e 26/26 (one earlier run: 2 timeouts, passed on rerun); API not re-run (untouched; last S06-1: 465 passed + 6 skips). Earlier, S04: API 375 passed + 6 env-gated skips; web unit 50; e2e 23/23; GitHub Actions green on all five jobs (`668216e`); audits 0 findings |
 | 16 | Security risks and limitations documented | M1+ | **Verified for M1** | `03-security/*`, `logs/ISSUES.md` |
 | 17 | Setup and deployment instructions exist | M1 (setup) / M6 (deploy) | Setup **verified**; deployment not started | `06-operations/DEV_SETUP.md`, `DEPLOYMENT.md` (draft) |
 | 18 | Team can explain implemented vs simulated vs customer-dependent | every M | **Verified through M10 (partial)** | `00-context/CURRENT_STATE.md`, `07-customer/CLIENT_DATA_INTAKE.md` |

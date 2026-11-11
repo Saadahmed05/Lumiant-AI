@@ -60,3 +60,13 @@ User-visible changes per milestone. Format loosely follows Keep a Changelog.
 ### Fixed
 - API image/compose: the non-root user could not write generated data (`/data` is now provided and owned).
 - CI: `pnpm/action-setup` no longer conflicts with the `packageManager` field.
+
+## [M11 visual refresh] — 2026-11-11
+### Changed
+- New look across every screen: graphite surfaces with one emerald accent, in dark and light. The neon glow, the background grid and the uppercase label above every page title are gone.
+- New typeface: Inter for text and numbers (aligned digits, no longer monospace); identifiers such as item codes, lot numbers and SQL stay in a monospace font.
+- The theme follows your device setting until you pick one with the toggle; "Theme: match system" in the command palette returns to the device setting.
+- Buttons, inputs, dropdowns, tabs, badges and tables now look and behave the same on every page (Inventory, Risks, Costs, Assistant, Reports, Admin, sign-in).
+- Form fields have a clearer outline (meets the 3:1 contrast rule for controls); status colours in the light theme were adjusted to stay readable.
+### Unchanged
+- Pages, navigation, permissions, numbers, wording and keyboard shortcuts.

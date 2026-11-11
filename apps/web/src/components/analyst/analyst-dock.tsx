@@ -20,6 +20,8 @@ import {
   unpin,
   useAnalyst,
 } from "@/components/analyst/store";
+import { Chip as Suggestion } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/button";
 import type { Selection } from "@/lib/agent";
 import { api } from "@/lib/api";
 import { humanize } from "@/lib/format";
@@ -43,7 +45,7 @@ const MAX_REM = 44;
 function Chip({ sel, onRemove }: { sel: Selection; onRemove?: () => void }) {
   return (
     <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-accent/35 bg-accent-soft py-0.5 pr-1 pl-2.5 text-xs text-ink">
-      <span className="eyebrow !text-[0.5625rem] !text-accent">{KIND_LABEL[sel.kind]}</span>
+      <span className="text-caption font-medium text-accent">{KIND_LABEL[sel.kind]}</span>
       <span className="truncate">{sel.label ?? humanize(sel.id)}</span>
       {onRemove && (
         <button type="button" onClick={onRemove} className="rounded-full p-0.5 text-ink-3 hover:bg-surface-2 hover:text-ink" aria-label={`Remove ${sel.label ?? sel.id}`}>
@@ -58,7 +60,7 @@ function TurnView({ turn, pinned }: { turn: Turn; pinned: boolean }) {
   const running = !turn.answer && !turn.error;
   return (
     <li className="space-y-2.5">
-      <div className="ml-auto w-fit max-w-[90%] space-y-1.5 rounded-xl rounded-br-sm bg-surface-3 px-3 py-2 text-sm text-ink shadow-e1">
+      <div className="ml-auto w-fit max-w-[90%] space-y-1.5 rounded-panel rounded-br-[0.25rem] bg-surface-3 px-3 py-2 text-sm text-ink shadow-e1">
         <p>{turn.question}</p>
         {turn.selections.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -68,7 +70,7 @@ function TurnView({ turn, pinned }: { turn: Turn; pinned: boolean }) {
           </div>
         )}
       </div>
-      <div className="rounded-xl border border-line bg-surface p-3.5 shadow-e1">
+      <div className="rounded-panel border border-line bg-surface-2/50 p-3.5">
         <Trace steps={turn.steps} running={running} />
         {running && turn.blocks.length > 0 && (
           <div className="mt-3 space-y-3">
@@ -94,7 +96,7 @@ function TurnView({ turn, pinned }: { turn: Turn; pinned: boolean }) {
                 <button
                   type="button"
                   onClick={() => togglePin(turn)}
-                  className={clsx("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-surface-2", pinned ? "text-accent" : "hover:text-ink")}
+                  className={clsx("inline-flex h-6 items-center gap-1 rounded-control px-1.5 transition-colors hover:bg-surface-2", pinned ? "text-accent" : "hover:text-ink")}
                   aria-pressed={pinned}
                 >
                   {pinned ? <PinOff size={12} aria-hidden /> : <Pin size={12} aria-hidden />} {pinned ? "Pinned" : "Pin"}
@@ -190,7 +192,7 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
           onKeyDown={(e) => {
             if (e.key === "Escape" && !lens) openDock(false);
           }}
-          className="fixed inset-y-0 right-0 z-(--z-nav) flex w-full flex-col border-l border-glass-line bg-glass-strong shadow-e3 backdrop-blur-xl sm:w-(--dock-w)"
+          className="fixed inset-y-0 right-0 z-(--z-nav) flex w-full flex-col border-l border-line bg-surface shadow-e3 sm:w-(--dock-w)"
           data-testid="analyst-dock"
         >
           <div
@@ -200,41 +202,35 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
             onPointerDown={startResize}
             className="absolute inset-y-0 -left-1 hidden w-2 cursor-col-resize hover:bg-accent/20 sm:block"
           />
-          <header className="flex items-center gap-2 border-b border-line px-4 py-3">
-            <span className="grid size-7 place-items-center rounded-lg bg-accent-soft text-accent shadow-[var(--glow)]">
+          <header className="flex items-center gap-1 border-b border-line px-4 py-3">
+            <span className="mr-1.5 grid size-8 shrink-0 place-items-center rounded-control bg-accent-soft text-accent">
               <Sparkles size={15} aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold tracking-tight text-ink">Analyst</h2>
-              <p className="truncate text-[0.6875rem] text-ink-3">Every number comes from your permitted data</p>
+              <h2 className="text-title font-semibold text-ink">Analyst</h2>
+              <p className="text-caption leading-snug text-ink-3">Every number comes from your permitted data</p>
             </div>
             <button
               type="button"
               onClick={toggleLens}
               aria-pressed={lens}
               title="Lens: click anything on the page to analyze it (L)"
-              className={clsx("inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors", lens ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink")}
+              className={clsx("inline-flex h-7 items-center gap-1 rounded-control px-2 text-xs font-medium transition-colors", lens ? "bg-accent text-accent-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink")}
             >
               <Crosshair size={13} aria-hidden /> Lens
             </button>
-            <button
-              type="button"
-              onClick={() => setShowBoard((v) => !v)}
-              aria-pressed={showBoard}
-              title="Pinned answers"
-              className={clsx("relative rounded-md p-1.5 transition-colors", showBoard ? "bg-surface-3 text-ink" : "text-ink-3 hover:bg-surface-2 hover:text-ink")}
-            >
-              <Pin size={14} aria-hidden />
+            <IconButton onClick={() => setShowBoard((v) => !v)} aria-pressed={showBoard} active={showBoard} title="Pinned answers">
+              <Pin size={15} aria-hidden />
               <span className="sr-only">Pinned answers</span>
-              {board.length > 0 && <span className="figure absolute -top-0.5 -right-0.5 rounded-full bg-accent px-1 text-[0.5625rem] text-accent-ink">{board.length}</span>}
-            </button>
-            <button type="button" onClick={clearConversation} title="New conversation" className="rounded-md p-1.5 text-ink-3 hover:bg-surface-2 hover:text-ink">
-              <MessageSquarePlus size={14} aria-hidden />
+              {board.length > 0 && <span className="figure absolute -top-0.5 -right-0.5 rounded-full bg-accent px-1 text-[0.5625rem] leading-3.5 font-semibold text-accent-ink">{board.length}</span>}
+            </IconButton>
+            <IconButton onClick={clearConversation} title="New conversation">
+              <MessageSquarePlus size={15} aria-hidden />
               <span className="sr-only">New conversation</span>
-            </button>
-            <button type="button" onClick={() => openDock(false)} className="rounded-md p-1.5 text-ink-3 hover:bg-surface-2 hover:text-ink" aria-label="Close the Analyst">
-              <X size={15} aria-hidden />
-            </button>
+            </IconButton>
+            <IconButton onClick={() => openDock(false)} aria-label="Close the Analyst">
+              <X size={16} aria-hidden />
+            </IconButton>
           </header>
 
           {selections.length > 0 && (
@@ -242,7 +238,7 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
               {selections.map((s) => (
                 <Chip key={`${s.kind}:${s.id}`} sel={s} onRemove={() => removeSelection(s)} />
               ))}
-              <button type="button" onClick={clearSelections} className="ml-auto text-[0.6875rem] text-ink-3 hover:text-ink">
+              <button type="button" onClick={clearSelections} className="ml-auto rounded-control text-caption text-ink-3 transition-colors hover:text-ink">
                 Clear
               </button>
             </div>
@@ -251,10 +247,10 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
             {showBoard ? (
               <section aria-label="Pinned answers" className="space-y-2">
-                <p className="eyebrow">Pinned answers</p>
+                <p className="text-dense font-medium text-ink-2">Pinned answers</p>
                 {board.length === 0 && <p className="text-sm text-ink-3">Pin an answer to keep it here (this browser only).</p>}
                 {board.map((p) => (
-                  <article key={p.id} className="rounded-lg border border-line bg-surface p-3 text-sm">
+                  <article key={p.id} className="rounded-control border border-line bg-surface-2/50 p-3 text-sm">
                     <p className="font-medium text-ink">{p.question}</p>
                     <p className="mt-1 text-ink-2">{p.answer}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-ink-3">
@@ -271,7 +267,7 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
               </section>
             ) : turns.length === 0 ? (
               <div className="space-y-4">
-                <div className="rounded-xl border border-dashed border-line-strong p-4">
+                <div className="rounded-panel border border-dashed border-line-strong p-4">
                   <p className="text-sm font-medium text-ink">{selections.length ? "What would you like to know?" : "Point at anything"}</p>
                   <p className="mt-1 text-xs leading-relaxed text-ink-3">
                     Right-click a KPI, chart, row or insight — or press <kbd>L</kbd> for Lens and click it. Shift-click several to compare them.
@@ -280,9 +276,9 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
                 {starters.length > 0 && (
                   <div className="flex flex-wrap gap-2" aria-label="Suggested questions">
                     {starters.map((s) => (
-                      <button key={s} type="button" onClick={() => send(s)} className="rounded-full border border-line px-3 py-1.5 text-left text-xs text-ink-2 transition-colors hover:border-accent/50 hover:bg-accent-soft hover:text-accent">
+                      <Suggestion key={s} onClick={() => send(s)}>
                         {s}
-                      </button>
+                      </Suggestion>
                     ))}
                   </div>
                 )}
@@ -295,9 +291,9 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
                 {!busy && contextual.length > 0 && (
                   <li className="flex flex-wrap gap-2" aria-label="Suggested questions">
                     {contextual.map((s) => (
-                      <button key={s} type="button" onClick={() => send(s)} className="rounded-full border border-line px-3 py-1 text-xs text-ink-2 hover:border-accent/50 hover:bg-accent-soft hover:text-accent">
+                      <Suggestion key={s} size="sm" onClick={() => send(s)}>
                         {s}
-                      </button>
+                      </Suggestion>
                     ))}
                   </li>
                 )}
@@ -313,7 +309,7 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
               send(text);
             }}
           >
-            <div className="flex items-end gap-2 rounded-xl border border-control-line bg-surface px-3 py-2 transition-colors focus-within:border-accent/70">
+            <div className="flex items-end gap-2 rounded-panel border border-control-line bg-surface px-3 py-2 transition-colors focus-within:border-accent">
               <textarea
                 ref={input}
                 value={text}
@@ -333,7 +329,7 @@ export function AnalystDock({ canCost }: { canCost: boolean }) {
               <button
                 type="submit"
                 disabled={busy || text.trim().length < 2}
-                className="grid size-7 shrink-0 place-items-center rounded-lg bg-accent text-accent-ink transition-opacity disabled:opacity-35"
+                className="grid size-7 shrink-0 place-items-center rounded-control bg-accent text-accent-ink transition-[background-color,opacity,transform] hover:bg-accent-strong active:translate-y-px disabled:opacity-35"
                 aria-label="Send"
               >
                 <ArrowUp size={15} aria-hidden />

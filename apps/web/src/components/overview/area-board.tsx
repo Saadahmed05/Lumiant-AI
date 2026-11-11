@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { ask } from "@/components/analyst/store";
 import { ErrorState, Skeleton } from "@/components/data/widget";
+import { Chip } from "@/components/ui/badge";
 import { ApiError, type Me } from "@/lib/api";
 import { formatCount, formatMoney, formatNumber, humanize } from "@/lib/format";
 import { useBelowReorder, useDataQuality, useMetric, useRisk } from "@/lib/hooks";
@@ -46,26 +47,26 @@ function Area({
   return (
     <section className="rise panel flex min-w-0 flex-col gap-4 p-4 sm:p-5" style={enterDelay(index)} aria-label={title} data-testid={testId}>
       <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-2 text-accent">
-            <Icon size={15} aria-hidden />
+        <div className="flex items-start gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-control border border-line bg-surface-2 text-accent">
+            <Icon size={16} aria-hidden />
           </span>
           <div>
-            <h2 className="text-[0.95rem] font-semibold text-ink">{title}</h2>
+            <h2 className="text-title font-semibold text-ink">{title}</h2>
             <p className="text-xs text-ink-3">{question}</p>
           </div>
         </div>
         {href && (
-          <Link href={href} className="flex shrink-0 items-center gap-1 text-xs text-ink-3 hover:text-accent">
+          <Link href={href} className="flex shrink-0 items-center gap-1 rounded-control text-xs font-medium text-ink-3 transition-colors hover:text-accent">
             {linkLabel} <ArrowRight size={12} aria-hidden />
           </Link>
         )}
       </header>
 
-      <dl className="grid grid-cols-2 gap-3">
+      <dl className="grid grid-cols-2 gap-4">
         {figures.map((f) => (
           <div key={f.label} className="min-w-0" data-testid={f.testId}>
-            <dt className="eyebrow">{f.label}</dt>
+            <dt className="text-xs text-ink-3">{f.label}</dt>
             <dd className="mt-1 min-h-7">
               {f.pending ? <Skeleton className="h-6 w-24" /> : f.error ? <FigureError error={f.error} /> : f.value}
             </dd>
@@ -82,13 +83,9 @@ function Area({
           <ul className="flex flex-wrap gap-1.5" aria-label={`Questions about ${title.toLowerCase()}`}>
             {questions.map((q) => (
               <li key={q}>
-                <button
-                  type="button"
-                  onClick={() => void ask(q)}
-                  className="rounded-full border border-line px-2.5 py-1 text-left text-xs text-ink-2 transition-colors hover:border-accent hover:text-ink focus-visible:border-accent"
-                >
+                <Chip size="sm" onClick={() => void ask(q)}>
                   {q}
-                </button>
+                </Chip>
               </li>
             ))}
           </ul>
@@ -99,7 +96,7 @@ function Area({
 }
 
 const Big = ({ children, tone }: { children: React.ReactNode; tone?: "signal" }) => (
-  <span className={`figure text-xl font-semibold leading-tight tracking-tight ${tone === "signal" ? "text-signal" : "text-ink"}`}>{children}</span>
+  <span className={`figure text-xl font-semibold leading-tight tracking-[-0.015em] ${tone === "signal" ? "text-signal" : "text-ink"}`}>{children}</span>
 );
 const Small = ({ children }: { children: React.ReactNode }) => <span className="block text-xs text-ink-3">{children}</span>;
 const Unavailable = () => <span className="text-xs text-ink-3">Not in your access</span>;
@@ -172,8 +169,8 @@ export function AreaBoard({ me, canSeeValue }: { me: Me; canSeeValue: boolean })
   return (
     <div className="space-y-3" data-testid="area-board">
       <div>
-        <p className="eyebrow">Inventory at a glance</p>
-        <p className="mt-0.5 text-sm text-ink-3">Four areas cover the whole of inventory management. Start from any of them and ask the next question.</p>
+        <h2 className="text-section font-semibold text-ink">Inventory at a glance</h2>
+        <p className="mt-1 text-sm text-ink-3">Four areas cover the whole of inventory management. Start from any of them and ask the next question.</p>
       </div>
       <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
         <Area

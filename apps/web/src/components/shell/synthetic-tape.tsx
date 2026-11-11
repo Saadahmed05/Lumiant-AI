@@ -4,11 +4,11 @@ import type { DataClassification } from "@/lib/api";
 export function SyntheticTape({ compact = false }: { compact?: boolean }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded-[3px] border border-line-strong px-1.5 py-0.5"
+      className="inline-flex shrink-0 items-center rounded-full border border-line-strong bg-surface-2 px-2 py-0.5"
       title="Generated demonstration data — not from any customer system"
       data-testid="synthetic-badge"
     >
-      <span className="whitespace-nowrap text-[0.625rem] font-bold tracking-[0.14em] text-ink-2">
+      <span className="whitespace-nowrap text-[0.625rem] leading-4 font-semibold tracking-[0.08em] text-ink-2">
         {compact ? (
           "SYNTHETIC"
         ) : (
@@ -26,11 +26,11 @@ export function SyntheticTape({ compact = false }: { compact?: boolean }) {
 export function ClientExtractTape({ compact = false }: { compact?: boolean }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded-[3px] border-2 border-signal bg-signal-soft px-1.5 py-0.5"
+      className="inline-flex shrink-0 items-center rounded-full border border-signal bg-signal-soft px-2 py-0.5"
       title="Real client data loaded locally from exported files — confidential, do not share or deploy"
       data-testid="client-extract-badge"
     >
-      <span className="whitespace-nowrap text-[0.625rem] font-extrabold tracking-[0.14em] text-signal">
+      <span className="whitespace-nowrap text-[0.625rem] leading-4 font-bold tracking-[0.08em] text-signal">
         {compact ? (
           "CLIENT EXTRACT"
         ) : (

@@ -7,6 +7,10 @@ import { useState } from "react";
 
 import { SimpleTable, type SimpleColumn } from "@/components/data/simple-table";
 import { ErrorState, Panel, Skeleton } from "@/components/data/widget";
+import { Button } from "@/components/ui/button";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
+import { Tabs } from "@/components/ui/tabs";
 import { api, ApiError, type Me, type Row } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useMe } from "@/lib/hooks";
@@ -52,20 +56,20 @@ function SchemaPanel() {
           </p>
           <ul className="divide-y divide-line">
             {q.data.datasets.map((d) => (
-              <li key={d.dataset} className="py-2 text-sm">
+              <li key={d.dataset} className="py-2.5 text-sm">
                 <div className="flex items-baseline justify-between gap-3">
                   <span>
-                    <span className="font-medium text-ink">{d.dataset}</span> <span className="figure text-xs text-ink-3">{d.source}</span>
+                    <span className="font-medium text-ink">{d.dataset}</span> <span className="code text-xs text-ink-3">{d.source}</span>
                   </span>
                   <span className={clsx("text-xs font-semibold", d.status === "ok" ? "text-ok" : "text-signal")}>{d.status}</span>
                 </div>
                 {d.problems.map((p, i) => (
-                  <p key={i} className="figure text-xs text-signal">
+                  <p key={i} className="code text-xs text-signal">
                     {p.kind}: {p.field ?? p.column ?? ""} {p.expected ? `(expected ${p.expected}, found ${p.found})` : ""}
                   </p>
                 ))}
                 {d.unmapped.length > 0 && (
-                  <p className="figure text-xs text-ink-3">Unmapped columns to review: {d.unmapped.map((u) => u.column).join(", ")}</p>
+                  <p className="code text-xs text-ink-3">Unmapped columns to review: {d.unmapped.map((u) => u.column).join(", ")}</p>
                 )}
               </li>
             ))}
@@ -121,8 +125,8 @@ function ReconciliationPanel() {
     },
   });
   const cols: SimpleColumn[] = [
-    { key: "w", label: "Warehouse", render: (r) => <span className="figure text-xs">{r.warehouse_id}</span> },
-    { key: "c", label: "Currency", render: (r) => <span className="figure text-xs">{r.currency}</span> },
+    { key: "w", label: "Warehouse", render: (r) => <span className="code text-xs">{r.warehouse_id}</span> },
+    { key: "c", label: "Currency", render: (r) => <span className="text-xs">{r.currency}</span> },
     { key: "p", label: "Platform", align: "right", render: (r) => <span className="figure">{r.platform ?? "—"}</span> },
     { key: "u", label: "Customer report", align: "right", render: (r) => <span className="figure">{r.customer ?? "—"}</span> },
     { key: "d", label: "Difference", align: "right", render: (r) => <span className="figure">{r.difference ?? "—"}</span> },
@@ -131,17 +135,17 @@ function ReconciliationPanel() {
   return (
     <Panel title="Reconciliation against the customer's report" subtitle="Paste the authoritative inventory-value report (warehouse, currency, value). Currencies are compared separately, never converted.">
       <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">CSV rows: warehouse_id,currency,value</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="figure rounded-sm border border-line bg-surface p-2 text-xs" aria-label="Customer report rows" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Tolerance (per line)</span>
-          <input value={tolerance} onChange={(e) => setTolerance(e.target.value)} className="figure h-9 rounded-sm border border-line bg-surface px-2 text-sm" aria-label="Tolerance" />
-          <button type="button" onClick={() => run.mutate()} disabled={run.isPending} className="mt-2 h-9 rounded-sm bg-ink px-4 text-sm font-medium text-surface disabled:opacity-40">
+        <Field label="CSV rows: warehouse_id,currency,value">
+          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="code" aria-label="Customer report rows" />
+        </Field>
+        <div className="flex flex-col gap-3">
+          <Field label="Tolerance (per line)">
+            <Input value={tolerance} onChange={(e) => setTolerance(e.target.value)} className="figure" aria-label="Tolerance" />
+          </Field>
+          <Button variant="primary" onClick={() => run.mutate()} disabled={run.isPending}>
             Reconcile
-          </button>
-        </label>
+          </Button>
+        </div>
       </div>
       {run.error && (
         <p role="alert" className="mt-3 text-sm text-signal">
@@ -176,8 +180,8 @@ function AuditPanel({ me }: { me?: Me }) {
   });
   const cols: SimpleColumn[] = [
     { key: "t", label: "When", render: (r) => <span className="figure text-xs">{formatTimestamp(r.occurred_at as string)}</span> },
-    { key: "u", label: "User", render: (r) => <span className="figure text-xs">{r.user_id}</span> },
-    { key: "a", label: "Action", render: (r) => <span className="figure text-xs">{r.action}</span> },
+    { key: "u", label: "User", render: (r) => <span className="code text-xs">{r.user_id}</span> },
+    { key: "a", label: "Action", render: (r) => <span className="code text-xs">{r.action}</span> },
     { key: "d", label: "Decision", render: (r) => <span className={clsx("text-xs font-semibold", r.decision === "deny" ? "text-signal" : "text-ink-2")}>{r.decision}{r.reason ? ` (${r.reason})` : ""}</span> },
     { key: "n", label: "Rows", align: "right", render: (r) => <span className="figure">{r.rows ?? "—"}</span> },
     { key: "m", label: "ms", align: "right", render: (r) => <span className="figure">{r.duration_ms ?? "—"}</span> },
@@ -189,12 +193,14 @@ function AuditPanel({ me }: { me?: Me }) {
       ) : (
         <>
           <div className="mb-3 flex flex-wrap gap-3">
-            <select value={decision} onChange={(e) => setDecision(e.target.value)} className="h-9 rounded-sm border border-line bg-surface px-2 text-sm" aria-label="Decision">
+            <Select value={decision} onChange={(e) => setDecision(e.target.value)} className="w-44" aria-label="Decision">
               <option value="">All decisions</option>
               <option value="allow">Allowed</option>
               <option value="deny">Denied</option>
-            </select>
-            <input value={action} onChange={(e) => setAction(e.target.value.replace(/[^A-Za-z0-9_:.-]/g, ""))} placeholder="Action prefix, e.g. export:" maxLength={40} className="figure h-9 rounded-sm border border-line bg-surface px-2 text-sm" aria-label="Action prefix" />
+            </Select>
+            <div className="w-64">
+              <Input value={action} onChange={(e) => setAction(e.target.value.replace(/[^A-Za-z0-9_:.-]/g, ""))} placeholder="Action prefix, e.g. export:" maxLength={40} className="code" aria-label="Action prefix" />
+            </div>
           </div>
           {q.isPending ? <Skeleton className="h-48 w-full" /> : q.error ? <ErrorState error={q.error} /> : <SimpleTable columns={cols} rows={q.data.events as unknown as Row[]} empty="No events." rowKey={(r) => String(r.id)} minWidth="40rem" />}
         </>
@@ -208,18 +214,11 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>("schema");
   return (
     <div className="mx-auto max-w-[96rem] space-y-5">
-      <div className="rise">
-        <p className="eyebrow">Administration</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">Onboarding and oversight</h1>
-        <p className="mt-1 text-sm text-ink-3">Check a data source against its mapping, see what is unlocked, prove numbers against the customer&apos;s own reports, and review access.</p>
-      </div>
-      <div role="tablist" aria-label="Administration" className="flex flex-wrap gap-1 border-b border-line">
-        {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={t.id === tab} onClick={() => setTab(t.id)} className={clsx("-mb-px border-b-2 px-3 py-2 text-sm", t.id === tab ? "border-ink font-semibold text-ink" : "border-transparent text-ink-3 hover:text-ink")}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <PageHeader
+        title="Onboarding and oversight"
+        description="Check a data source against its mapping, see what is unlocked, prove numbers against the customer's own reports, and review access."
+      />
+      <Tabs label="Administration" tabs={TABS} value={tab} onChange={setTab} />
       {tab === "schema" && <SchemaPanel />}
       {tab === "capabilities" && <CapabilitiesPanel />}
       {tab === "reconciliation" && <ReconciliationPanel />}

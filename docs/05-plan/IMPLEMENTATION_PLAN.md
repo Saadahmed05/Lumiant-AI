@@ -119,7 +119,21 @@ See `ROADMAP.md` and `07-customer/OPEN_QUESTIONS.md`.
 - [x] D2 Shell: icon rail + command bar, ⌘K palette (pages, materials, ask), shortcuts, route transitions, restyled shared primitives
 - [x] D3 Analyst Lens: analyzable KPIs/panels/bars/rows/insights, Lens mode, persistent dock with streamed trace, pins (ADR-0010)
 - [x] D4 (part) Overview as command center with the insight feed; assistant page on the shared streamed renderer
-- [ ] D4 (rest) Inventory virtualized grid + Material 360 sheet; Risks/Costs/Reports/Admin restyle; Admin › Data sources
+- [ ] D4 (rest) Inventory virtualized grid + Material 360 sheet; Admin › Data sources (the Risks/Costs/Reports/Admin restyle was done in M11)
 - [x] D5 (part) Vitest for SSE/selections/Lens; e2e for insights → Analyst, Lens compare, viewer leak check
 - [ ] D5 (rest) axe accessibility run
 - [x] D6 Docs (USER_GUIDE, FRONTEND § Analyst Lens, AGENT_DESIGN §6a/6b, ADR-0009/0010)
+
+## M11 — Visual refresh: graphite + emerald, Inter, system theme (owner request 2026-11-11, ADR-0011)
+Visual layer only: same routes, navigation labels, behaviour, wording, permissions, data hooks and test ids. It does not include the rest of D4 (ISSUES #39).
+- [x] V1 Tokens: graphite neutrals + one emerald accent in dark and light; radius rule (control 8 / panel 12 / float 14 px / pill); type scale; flat background (no glow, grid or radial lights). Contrast gate in both themes and chart palette re-validated (TEST_RUNS S07-1, S07-2)
+- [x] V2 Type: Inter variable, self-hosted (`inter-ui` 4.1.1), for text and numbers (`.figure` = aligned digits); Geist Mono only for identifiers (`.code`)
+- [x] V3 Theme follows the device until the user chooses; "Theme: match system" in the command palette; unit tests with a `matchMedia` stub (S07-3)
+- [x] V4 Primitive layer `apps/web/src/components/ui/` (Button, IconButton, Field, Input, Textarea, Select, SearchInput, Tabs, Segmented, Badge, Chip, DataTable, PageHeader, EmptyState, float surfaces) with `ui.test.tsx`
+- [x] V5 Shell and Analyst restyled (rail, command bar, palette, synthetic label, dock, Lens, answer view)
+- [x] V6 Every page moved onto the primitives: Overview, Inventory, Risks, Costs, Explore, Assistant, Reports, Admin, sign-in; pager and provenance slip
+- [x] V7 Enforcement: token lint, radius and glow greps, lint, typecheck, unit, e2e on a clean-cache build
+- [x] V8 Visual review from headless screenshots: nine screens in dark and light, 375 px, palette, dock, component states (S07-6)
+- [ ] Owner looks at it on a real display in both themes (ISSUES #51)
+- [ ] Table header that stays in view while scrolling (ISSUES #50; planned with the virtualized grid)
+- [ ] axe accessibility run (still open from M10 D5)

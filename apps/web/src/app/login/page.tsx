@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { api, ApiError, type DevUser } from "@/lib/api";
 import { humanize } from "@/lib/format";
 import { useDevUsers } from "@/lib/hooks";
+import { enterDelay } from "@/lib/motion";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,33 +31,38 @@ export default function LoginPage() {
   const hasExtract = (users.data?.users ?? []).some((u) => u.data_classification === "customer_extract");
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 py-10 sm:py-16">
-      <div className="flex items-start justify-between">
-        <div className="rise">
-          <p className="text-2xl font-extrabold tracking-[0.22em] text-ink sm:text-3xl">LUMIANT</p>
-          <p className="eyebrow mt-1">Inventory intelligence platform</p>
+    <div className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 py-10 sm:py-16">
+      <div className="flex items-center justify-between">
+        <div className="rise flex items-center gap-3">
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-control bg-accent text-base font-bold text-accent-ink">
+            L
+          </span>
+          <div className="leading-none">
+            <p className="text-lg font-semibold tracking-[0.14em] text-ink">LUMIANT</p>
+            <p className="mt-1.5 text-xs text-ink-3">Inventory intelligence platform</p>
+          </div>
         </div>
         <ThemeToggle />
       </div>
 
-      <div className="rise mt-10 rounded-md border border-signal/40 bg-signal-soft p-4" style={{ animationDelay: "60ms" }}>
-        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-          <ShieldAlert size={16} className="text-signal" aria-hidden />
-          Development authentication — not for production
-        </p>
-        <p className="mt-1 text-sm text-ink-2">
-          Pick a demo user. Each has a different role and warehouse scope so you can see access control in action.{" "}
-          {hasExtract ? (
-            <>
-              Tenants marked <strong>client extract</strong> hold confidential client data loaded on this machine; all
-              others run on <strong>generated</strong> data.
-            </>
-          ) : (
-            <>
-              Every tenant below runs on <strong>generated</strong> data.
-            </>
-          )}
-        </p>
+      <div className="rise mt-10 flex items-start gap-3 rounded-panel border border-signal/35 bg-signal-soft p-4" style={enterDelay(1)}>
+        <ShieldAlert size={16} className="mt-0.5 shrink-0 text-signal" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold text-ink">Development authentication — not for production</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-2">
+            Pick a demo user. Each has a different role and warehouse scope so you can see access control in action.{" "}
+            {hasExtract ? (
+              <>
+                Tenants marked <strong>client extract</strong> hold confidential client data loaded on this machine; all
+                others run on <strong>generated</strong> data.
+              </>
+            ) : (
+              <>
+                Every tenant below runs on <strong>generated</strong> data.
+              </>
+            )}
+          </p>
+        </div>
       </div>
 
       {users.isPending && <p className="mt-8 text-sm text-ink-3">Loading demo users…</p>}
@@ -66,7 +72,7 @@ export default function LoginPage() {
         </p>
       )}
       {users.error instanceof ApiError && users.error.status === 404 && (
-        <p className="mt-8 rounded-md border border-line bg-surface p-4 text-sm text-ink-2" role="status">
+        <p className="panel mt-8 p-4 text-sm text-ink-2" role="status">
           Sign-in is handled by your organisation&apos;s identity provider. Open this application through your organisation&apos;s
           gateway or portal.
         </p>
@@ -78,18 +84,18 @@ export default function LoginPage() {
         </p>
       )}
 
-      <div className={`mt-8 space-y-8 ${login.isPending || login.isSuccess ? "pointer-events-none opacity-50" : ""}`}>
+      <div className={`mt-8 space-y-7 ${login.isPending || login.isSuccess ? "pointer-events-none opacity-50" : ""}`}>
         {[...byTenant.entries()].map(([tenant, list], ti) => (
-          <section key={tenant} className="rise" style={{ animationDelay: `${120 + ti * 80}ms` }}>
-            <div className="mb-3 flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-ink">{tenant}</h2>
+          <section key={tenant} className="rise" style={enterDelay(2 + ti)}>
+            <div className="mb-2.5 flex items-center gap-3">
+              <h2 className="text-title font-semibold text-ink">{tenant}</h2>
               <DataBadge
                 classification={list[0]?.data_classification}
                 synthetic={list[0]?.data_classification !== "customer_extract"}
                 compact
               />
             </div>
-            <ul className="divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+            <ul className="panel divide-y divide-line overflow-hidden">
               {list.map((u) => (
                 <li key={u.username}>
                   <button
@@ -99,13 +105,13 @@ export default function LoginPage() {
                     className="group flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition-colors hover:bg-surface-2 disabled:opacity-60"
                     data-testid={`login-${u.username}`}
                   >
-                    <span>
+                    <span className="min-w-0">
                       <span className="block text-sm font-medium text-ink">{u.display_name}</span>
-                      <span className="figure block text-xs text-ink-3">
-                        {u.username} · {u.roles.map(humanize).join(", ")}
+                      <span className="mt-0.5 block truncate text-xs text-ink-3">
+                        <span className="code">{u.username}</span> · {u.roles.map(humanize).join(", ")}
                       </span>
                     </span>
-                    <ArrowRight size={16} className="text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                    <ArrowRight size={16} className="shrink-0 text-ink-3 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-accent" />
                   </button>
                 </li>
               ))}

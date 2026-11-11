@@ -34,7 +34,7 @@ export function AnalyzeButton({ sel, className, label }: { sel: Selection; class
       aria-label={`Analyze ${sel.label ?? sel.id}`}
       title="Analyze with the Analyst (Shift-click to compare)"
       className={clsx(
-        "inline-flex items-center gap-1 rounded-md p-1 text-ink-3 transition-colors hover:bg-accent-soft hover:text-accent focus-visible:text-accent",
+        "inline-flex h-6 min-w-6 items-center justify-center gap-1 rounded-control px-1 text-ink-3 transition-colors hover:bg-accent-soft hover:text-accent focus-visible:text-accent",
         className,
       )}
     >
@@ -81,7 +81,7 @@ export function Analyzable({
       {button && (
         <AnalyzeButton
           sel={sel}
-          className="absolute right-2 bottom-2 z-10 bg-surface-2/80 opacity-0 shadow-e1 backdrop-blur group-focus-within/an:opacity-100 group-hover/an:opacity-100"
+          className="absolute right-2 bottom-2 z-10 bg-surface-2 opacity-0 shadow-e1 group-focus-within/an:opacity-100 group-hover/an:opacity-100"
         />
       )}
     </div>

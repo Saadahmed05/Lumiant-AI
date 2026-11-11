@@ -6,6 +6,9 @@ import { useState } from "react";
 
 import { SimpleTable, type SimpleColumn } from "@/components/data/simple-table";
 import { ErrorState, Panel, Skeleton } from "@/components/data/widget";
+import { buttonClass } from "@/components/ui/button";
+import { Field, Select } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
 import { api, type Provenance, type ResultWarning, type Row } from "@/lib/api";
 import { formatMoney, formatNumber, formatQuantity } from "@/lib/format";
 import { useMe } from "@/lib/hooks";
@@ -68,41 +71,37 @@ export function ReportsPage() {
   }));
   const exportUrl = (fmt: string) => `/api/reports/${selected}/export?format=${fmt}${usesDays ? `&days=${days}` : ""}`;
   const meta = built.data?.metadata;
-  const linkClass = "inline-flex h-9 items-center gap-1.5 rounded-sm border border-line-strong px-3 text-sm hover:bg-surface-2";
+  const linkClass = buttonClass();
 
   return (
     <div className="mx-auto max-w-[96rem] space-y-5">
-      <div className="rise no-print">
-        <p className="eyebrow">Reports</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">Reports and exports</h1>
-        <p className="mt-1 text-sm text-ink-3">
-          Every report uses the same checked queries as the dashboards, honours your access scope, and carries its filters, data time and source.
-        </p>
-      </div>
+      <PageHeader
+        className="no-print"
+        title="Reports and exports"
+        description="Every report uses the same checked queries as the dashboards, honours your access scope, and carries its filters, data time and source."
+      />
 
-      <div className="no-print grid gap-3 rounded-md border border-line bg-surface p-4 sm:grid-cols-[1fr_auto_auto]">
-        <label className="flex flex-col gap-1">
-          <span className="eyebrow">Report</span>
-          <select value={selected} onChange={(e) => setSelected(e.target.value)} className="h-9 rounded-sm border border-line bg-surface px-2 text-sm" aria-label="Report">
+      <div className="no-print panel grid gap-3 p-4 sm:grid-cols-[1fr_auto_auto] sm:p-5">
+        <Field label="Report">
+          <Select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Report">
             <option value="">Choose a report…</option>
             {(list.data?.reports ?? []).map((r) => (
               <option key={r.id} value={r.id}>
                 {r.title}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
         {usesDays && (
-          <label className="flex flex-col gap-1">
-            <span className="eyebrow">Window (days)</span>
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="h-9 rounded-sm border border-line bg-surface px-2 text-sm" aria-label="Window in days">
+          <Field label="Window (days)">
+            <Select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Window in days">
               {[30, 60, 90, 180, 270, 365].map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Field>
         )}
         <div className="flex items-end gap-2">
           {list.data?.can_export && selected && (
@@ -139,7 +138,7 @@ export function ReportsPage() {
           ) : (
             <div data-testid="report-view">
               {meta && (
-                <dl className="mb-3 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-ink-2 sm:grid-cols-2" data-testid="report-meta">
+                <dl className="mb-4 grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-control border border-line bg-surface-2/40 p-3.5 text-xs text-ink-2 sm:grid-cols-2" data-testid="report-meta">
                   <div>
                     <dt className="inline text-ink-3">Organisation: </dt>
                     <dd className="inline">{meta.tenant}</dd>

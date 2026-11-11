@@ -7,9 +7,14 @@ import { useState } from "react";
 import { ItemCell, SimpleTable, type SimpleColumn } from "@/components/data/simple-table";
 import { Pager } from "@/components/data/pager";
 import { ErrorState, Panel, Skeleton } from "@/components/data/widget";
+import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
+import { Tabs } from "@/components/ui/tabs";
 import type { DataQualityCheck } from "@/lib/api";
 import { formatCount, formatNumber, formatQuantity, formatTimestamp, humanize } from "@/lib/format";
 import { type RiskKind, useDataQuality, useRisk } from "@/lib/hooks";
+import { enterDelay } from "@/lib/motion";
 
 const PAGE = 25;
 
@@ -23,7 +28,7 @@ type Tab = (typeof TABS)[number]["id"];
 
 const EXCESS: SimpleColumn[] = [
   { key: "item", label: "Item", render: (r) => <ItemCell row={r} /> },
-  { key: "wh", label: "Warehouse", render: (r) => <><span className="figure text-xs">{r.warehouse_id}</span><span className="block text-xs text-ink-3">{r.warehouse_name}</span></> },
+  { key: "wh", label: "Warehouse", render: (r) => <><span className="code text-xs">{r.warehouse_id}</span><span className="block text-xs text-ink-3">{r.warehouse_name}</span></> },
   { key: "oh", label: "On hand", align: "right", render: (r) => <span className="figure">{formatQuantity(r.on_hand as string, r.uom as string)}</span> },
   { key: "max", label: "Maximum", align: "right", render: (r) => <span className="figure">{formatQuantity(r.max_stock as string)}</span> },
   { key: "ex", label: "Excess", align: "right", render: (r) => <span className="figure text-signal">{formatQuantity(r.excess as string)}</span> },
@@ -33,7 +38,7 @@ const EXCESS: SimpleColumn[] = [
 const DORMANT: SimpleColumn[] = [
   { key: "item", label: "Item", render: (r) => <ItemCell row={r} /> },
   { key: "grp", label: "Group", render: (r) => humanize(r.item_group as string) },
-  { key: "wh", label: "Warehouse", render: (r) => <span className="figure text-xs">{r.warehouse_id}</span> },
+  { key: "wh", label: "Warehouse", render: (r) => <span className="code text-xs">{r.warehouse_id}</span> },
   { key: "oh", label: "On hand", align: "right", render: (r) => <span className="figure">{formatQuantity(r.on_hand as string, r.uom as string)}</span> },
   { key: "last", label: "Last issue", render: (r) => <span className="figure text-xs">{(r.last_issue as string) ?? "never in history"}</span> },
   { key: "days", label: "Days idle", align: "right", render: (r) => <span className="figure">{r.days_since_issue === null ? "—" : formatCount(r.days_since_issue as number)}</span> },
@@ -41,8 +46,8 @@ const DORMANT: SimpleColumn[] = [
 
 const EXPIRING: SimpleColumn[] = [
   { key: "item", label: "Item", render: (r) => <ItemCell row={r} /> },
-  { key: "wh", label: "Warehouse", render: (r) => <span className="figure text-xs">{r.warehouse_id}</span> },
-  { key: "lot", label: "Lot", render: (r) => <span className="figure text-xs">{r.lot_id}</span> },
+  { key: "wh", label: "Warehouse", render: (r) => <span className="code text-xs">{r.warehouse_id}</span> },
+  { key: "lot", label: "Lot", render: (r) => <span className="code text-xs">{r.lot_id}</span> },
   { key: "qty", label: "Quantity", align: "right", render: (r) => <span className="figure">{formatQuantity(r.quantity as string, r.uom as string)}</span> },
   { key: "exp", label: "Expires", render: (r) => <span className="figure text-xs">{r["lot.expiry_date"]}</span> },
   {
@@ -50,7 +55,7 @@ const EXPIRING: SimpleColumn[] = [
     label: "Status",
     render: (r) =>
       r.status === "expired" ? (
-        <span className="rounded-sm bg-signal-soft px-1.5 py-0.5 text-xs font-semibold text-signal">Expired {Math.abs(r.days_to_expiry as number)} d ago</span>
+        <Badge tone="signal">Expired {Math.abs(r.days_to_expiry as number)} d ago</Badge>
       ) : (
         <span className="figure text-xs">{formatCount(r.days_to_expiry as number)} d left</span>
       ),
@@ -128,7 +133,7 @@ function DataQualityPanel() {
                   <p className="text-sm text-ink">{c.title}</p>
                   <p className="text-xs text-ink-3">{s.label}</p>
                   {c.examples && c.examples.length > 0 && (
-                    <ul className="figure mt-1 space-y-0.5 text-xs text-ink-2">
+                    <ul className="code mt-1 space-y-0.5 text-xs text-ink-2">
                       {c.examples.map((e) => (
                         <li key={e.item_id}>
                           {e.item_code} <span className="text-ink-3">({e.problems.join(", ")})</span>
@@ -139,7 +144,7 @@ function DataQualityPanel() {
                   {c.partial && <p className="mt-1 text-xs text-signal">Only the first {formatCount(c.checked)} items were checked.</p>}
                   {c.share != null && <p className="figure mt-1 text-xs text-ink-2">{c.share}% of the records checked</p>}
                 </div>
-                <span className={clsx("figure text-lg font-semibold", c.status === "issue" ? "text-signal" : "text-ink")}>
+                <span className={clsx("figure text-section font-semibold", c.status === "issue" ? "text-signal" : "text-ink")}>
                   {c.count === null ? "—" : formatCount(c.count)}
                 </span>
               </li>
@@ -159,50 +164,32 @@ export function RisksPage() {
   const current = TABS.find((t) => t.id === tab)!;
   return (
     <div className="mx-auto max-w-[96rem] space-y-5">
-      <div className="rise">
-        <p className="eyebrow">Risks</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-[1.75rem]">Inventory risks</h1>
-        <p className="mt-1 text-sm text-ink-3">
-          Every flag explains why it was raised and which data it used. Definitions are drafts until your organisation approves them.
-        </p>
-      </div>
+      <PageHeader
+        title="Inventory risks"
+        description="Every flag explains why it was raised and which data it used. Definitions are drafts until your organisation approves them."
+      />
 
-      <div role="tablist" aria-label="Risk views" className="rise flex flex-wrap gap-1 border-b border-line" style={{ animationDelay: "60ms" }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={t.id === tab}
-            onClick={() => setTab(t.id)}
-            className={clsx(
-              "-mb-px border-b-2 px-3 py-2 text-sm",
-              t.id === tab ? "border-ink font-semibold text-ink" : "border-transparent text-ink-3 hover:text-ink",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs label="Risk views" tabs={TABS} value={tab} onChange={setTab} className="rise" style={enterDelay(1)} />
       <p className="text-sm text-ink-2">{current.blurb}</p>
 
       {tab === "dormant" && (
         <label className="flex items-center gap-2 text-sm text-ink-2">
           No issue for at least
-          <select value={dormantDays} onChange={(e) => setDormantDays(Number(e.target.value))} className="h-8 rounded-sm border border-line bg-surface px-2">
+          <Select size="sm" value={dormantDays} onChange={(e) => setDormantDays(Number(e.target.value))}>
             {[90, 180, 270, 365].map((d) => (
               <option key={d} value={d}>{d} days</option>
             ))}
-          </select>
+          </Select>
         </label>
       )}
       {tab === "expiring-lots" && (
         <label className="flex items-center gap-2 text-sm text-ink-2">
           Expiring within
-          <select value={expiryDays} onChange={(e) => setExpiryDays(Number(e.target.value))} className="h-8 rounded-sm border border-line bg-surface px-2">
+          <Select size="sm" value={expiryDays} onChange={(e) => setExpiryDays(Number(e.target.value))}>
             {[30, 60, 90, 180].map((d) => (
               <option key={d} value={d}>{d} days</option>
             ))}
-          </select>
+          </Select>
         </label>
       )}
 

@@ -11,9 +11,9 @@ Testing is part of every step (brief §18). Every run is recorded in `../logs/TE
 | API security-tagged | both | `uv run pytest -q -m security` | subset |
 | API lint / format / types | | `uv run ruff check .` · `uv run ruff format --check .` · `uv run mypy` (strict) | clean |
 | API on PostgreSQL / Redis | same suites | `uv sync --frozen --extra postgres --extra redis`, then `LUMIANT_TEST_PG_ADMIN_URL=postgresql+psycopg://user:pw@host/postgres LUMIANT_TEST_REDIS_URL=redis://host:6379/0 uv run pytest -q` (each test app gets a fresh database; role needs CREATEDB; without the variables SQLite is used and those tests skip) | 275 (default 269 + 6 skipped) |
-| Web unit (Vitest + Testing Library) | `apps/web/tests/unit` | `pnpm test` | 23 |
+| Web unit (Vitest + Testing Library) | `apps/web/tests/unit` | `pnpm test` | 74 |
 | Web lint / types | | `pnpm lint` · `pnpm typecheck` | clean |
-| End-to-end (Playwright, Chromium) | `apps/web/e2e` | `pnpm exec playwright install chromium` once, then `pnpm e2e` | 20 |
+| End-to-end (Playwright, Chromium) | `apps/web/e2e` | `pnpm exec playwright install chromium` once, then `pnpm e2e` | 26 |
 | Dependency audit | | `pnpm audit` (web) · `uv export --no-hashes --format requirements-txt --no-emit-project > req.txt && uvx pip-audit -r req.txt` (API) | 0 known vulns |
 | Everything except e2e | repo root | `pnpm run check` | |
 
@@ -33,11 +33,14 @@ Testing is part of every step (brief §18). Every run is recorded in `../logs/TE
 | Web formatting | `format.test.ts` | exact decimal-string formatting (no float drift), half-even rounding, currency codes always shown, missing values never shown as 0 |
 | Web API client | `api.test.ts` | CSRF header, safe error parsing, network errors |
 | Provenance UI | `provenance.test.tsx` | mapping, user vs permission filters, SQL only when the API sent it |
+| UI primitives and theme | `ui.test.tsx` | Button never submits by accident; Field names its control and an explicit `aria-label` still wins; Tabs and Segmented expose one selected tab; table header announces sorting; the theme follows the system until the user chooses, a saved choice wins, "match system" forgets it |
 | E2E | `e2e/app.spec.ts` | redirect when signed out; admin values + provenance; search/filter/paging (+ debounce regression); analyst never receives values (UI + direct API call 403); other-tenant user sees only own warehouse |
 
 ## The e2e stack
 
 `playwright.config.ts` starts an isolated stack: API on **8100** with freshly generated data and its own app DB in `services/api/var/e2e/`, and a **production build** of the web app on **3100**. It does not touch the dev stack on 8000/3000.
+
+Run the unit suite on its own: with a dev server or a build running on the same machine the Vitest workers time out before they start (`pnpm exec vitest run --maxWorkers=2` is the reliable form here; TEST_RUNS S06-1, S07-3). The e2e suite runs in Playwright's default light colour scheme, so it exercises the light theme; dark is covered by the theme unit tests and by a screenshot pass when the look changes.
 
 Before a local build that serves as evidence, delete `apps/web/.next/cache`: Turbopack's persistent build cache once produced CSS without the latest `globals.css` change (ISSUES #33). On a memory-starved machine the web server's build can exceed Playwright's 300 s start-up timeout; then build first (`LUMIANT_API_ORIGIN=http://127.0.0.1:8100 pnpm build`) and run the same suite against `pnpm start --port 3100` with a local, uncommitted config that only raises the timeouts (TEST_RUNS D2-4).
 

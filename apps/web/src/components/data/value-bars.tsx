@@ -6,9 +6,11 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { analyzableProps } from "@/components/analyst/analyzable";
 import { analyze } from "@/components/analyst/store";
 import { ErrorState, Panel, Skeleton } from "@/components/data/widget";
+import { Segmented } from "@/components/ui/tabs";
 import type { SelectionKind } from "@/lib/agent";
 import { formatMoney, humanize, toChartNumber } from "@/lib/format";
 import { useMetric } from "@/lib/hooks";
+import { enterDelay } from "@/lib/motion";
 
 type Props = {
   metricId: string;
@@ -18,7 +20,8 @@ type Props = {
   /** Optional field shown before the label (e.g. warehouse id). */
   codeField?: string;
   humanizeLabels?: boolean;
-  delay?: number;
+  /** Position in the grid (entrance stagger). */
+  index?: number;
   /** What a bar stands for; clicking it (or picking it in Lens mode) points the Analyst at that category. */
   selectKind?: SelectionKind;
 };
@@ -40,7 +43,7 @@ function CategoryTick({ x, y, payload }: { x?: number | string; y?: number | str
  * Horizontal bars of a value metric. Amounts in different currencies are shown one currency at a time;
  * bar lengths use numbers for geometry only — every printed amount is the exact decimal string.
  */
-export function ValueBars({ metricId, title, labelField, codeField, humanizeLabels, delay = 0, selectKind }: Props) {
+export function ValueBars({ metricId, title, labelField, codeField, humanizeLabels, index = 0, selectKind }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const { data, error, isPending } = useMetric(metricId);
   const currencies = useMemo(
@@ -68,22 +71,7 @@ export function ValueBars({ metricId, title, labelField, codeField, humanizeLabe
     [data, currency, labelField, codeField, humanizeLabels],
   );
 
-  const switcher =
-    currencies.length > 1 ? (
-      <div role="tablist" aria-label="Currency" className="flex rounded-md border border-line bg-surface-2/50 p-0.5">
-        {currencies.map((c) => (
-          <button
-            key={c}
-            role="tab"
-            aria-selected={c === currency}
-            onClick={() => setPicked(c)}
-            className={`figure rounded-[5px] px-1.5 py-0.5 text-[0.6875rem] transition-colors ${c === currency ? "bg-surface-3 text-ink shadow-e1" : "text-ink-3 hover:text-ink"}`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-    ) : null;
+  const switcher = currencies.length > 1 && currency ? <Segmented label="Currency" options={currencies} value={currency} onChange={setPicked} /> : null;
 
   return (
     <Panel
@@ -102,7 +90,7 @@ export function ValueBars({ metricId, title, labelField, codeField, humanizeLabe
       provenance={data?.provenance}
       warnings={data?.warnings.filter((w) => w.code !== "auto_grouped" && w.code !== "missing_valuation_price")}
       actions={switcher}
-      style={{ animationDelay: `${delay}ms` }}
+      style={enterDelay(4 + index)}
       analyze={{ kind: "metric", id: metricId, label: title }}
     >
       {isPending ? (
@@ -114,7 +102,7 @@ export function ValueBars({ metricId, title, labelField, codeField, humanizeLabe
       ) : (
         <div
           style={{ height: Math.max(140, rows.length * 34 + 24) }}
-          className="figure text-[0.6875rem]"
+          className="figure text-caption"
           {...(selectKind && hover !== null && rows[hover]?.id
             ? analyzableProps({ kind: selectKind, id: rows[hover].id, label: rows[hover].label })
             : {})}
@@ -152,7 +140,7 @@ export function ValueBars({ metricId, title, labelField, codeField, humanizeLabe
                 contentStyle={{
                   background: "var(--surface-3)",
                   border: "1px solid var(--line-strong)",
-                  borderRadius: 8,
+                  borderRadius: "var(--r-control)",
                   boxShadow: "var(--elev-2)",
                   fontSize: 12,
                 }}

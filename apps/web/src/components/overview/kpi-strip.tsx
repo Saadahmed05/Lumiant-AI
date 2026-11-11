@@ -34,11 +34,7 @@ function Cell({ label, footnote, provenance, warnings, pending, error, tone = "d
   return (
     <div
       className={clsx(
-        "rise panel relative flex min-w-0 flex-col gap-2 overflow-hidden p-4 transition-colors hover:border-line-strong",
-        // a lit top edge: teal for position, amber for attention
-        "before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-linear-to-r before:from-transparent before:to-transparent",
-        tone === "signal" ? "before:via-signal/70" : "before:via-accent/60",
-      )}
+"rise panel relative flex min-w-0 flex-col gap-2.5 p-4 transition-colors hover:border-line-strong sm:p-5")}
       style={enterDelay(index)}
       data-testid={testId}
       {...(sel ? analyzableProps(sel) : {})}
@@ -53,13 +49,13 @@ function Cell({ label, footnote, provenance, warnings, pending, error, tone = "d
       }
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="eyebrow">{label}</span>
+        <span className="text-dense font-medium text-ink-2">{label}</span>
         <span className="flex items-center">
-          {sel && <AnalyzeButton sel={sel} className="opacity-60 hover:opacity-100" />}
+          {sel && <AnalyzeButton sel={sel} />}
           <ProvenanceButton provenance={provenance} label="" />
         </span>
       </div>
-      <div className={clsx("min-h-9", tone === "signal" ? "text-signal" : "text-ink")}>
+      <div className={clsx("@container min-h-[2.125rem]", tone === "signal" ? "text-signal" : "text-ink")}>
         {pending ? <Skeleton className="h-8 w-32" /> : error ? <ErrorState error={error} /> : children}
       </div>
       {footnote && !pending && !error && <p className="text-xs text-ink-3">{footnote}</p>}
@@ -107,7 +103,7 @@ export function KpiStrip({ canSeeValue }: { canSeeValue: boolean }) {
         {canSeeValue ? (
           <ul className="space-y-0.5">
             {(value.data?.data ?? []).map((r) => (
-              <li key={String(r.currency)} className="figure text-[1.625rem] font-semibold leading-tight tracking-tight">
+              <li key={String(r.currency)} className="figure kpi-fit text-kpi font-semibold">
                 {formatMoney(r.value as string, String(r.currency))}
               </li>
             ))}
@@ -129,7 +125,7 @@ export function KpiStrip({ canSeeValue }: { canSeeValue: boolean }) {
         analyze={{ kind: "metric", id: "items_in_stock", label: "Items in stock" }}
         footnote="Distinct items with quantity > 0"
       >
-        <span className="figure text-[1.625rem] font-semibold leading-tight tracking-tight">{formatCount(firstNumber(items.data, "items"))}</span>
+        <span className="figure text-kpi font-semibold">{formatCount(firstNumber(items.data, "items"))}</span>
       </Cell>
       <Cell
         label="Stock lines"
@@ -141,7 +137,7 @@ export function KpiStrip({ canSeeValue }: { canSeeValue: boolean }) {
         analyze={{ kind: "metric", id: "stock_lines", label: "Stock lines" }}
         footnote="Item × warehouse × location × lot"
       >
-        <span className="figure text-[1.625rem] font-semibold leading-tight tracking-tight">{formatCount(firstNumber(lines.data, "lines"))}</span>
+        <span className="figure text-kpi font-semibold">{formatCount(firstNumber(lines.data, "lines"))}</span>
       </Cell>
       <Cell
         label="Below reorder level"
@@ -159,7 +155,7 @@ export function KpiStrip({ canSeeValue }: { canSeeValue: boolean }) {
             : undefined
         }
       >
-        <span className="figure text-[1.625rem] font-semibold leading-tight tracking-tight">{formatCount(below.data?.summary?.flagged)}</span>
+        <span className="figure text-kpi font-semibold">{formatCount(below.data?.summary?.flagged)}</span>
       </Cell>
     </div>
   );
