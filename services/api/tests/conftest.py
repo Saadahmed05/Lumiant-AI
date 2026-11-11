@@ -42,6 +42,19 @@ def data_dir(tmp_path_factory: pytest.TempPathFactory, registry: TenantRegistry)
 
 
 @pytest.fixture(scope="session")
+def full_size_dir(tmp_path_factory: pytest.TempPathFactory, registry: TenantRegistry) -> Path:
+    """Full-size synthetic warehouses (generator defaults), as `lumiant-synthetic generate --all` writes them.
+
+    The no-mapping tests count rows at full size. They used to read the developer's own `data/synthetic`, which is not
+    in git, so they failed on a fresh checkout (CI). Generated here instead; the generator is deterministic.
+    """
+    root = tmp_path_factory.mktemp("lumiant-full")
+    for tenant_id in ("demo-alpha", "demo-beta", "demo-gamma"):
+        generate_tenant(tenant_id, registry=registry, data_dir=root, as_of=AS_OF)
+    return root / "data" / "synthetic"
+
+
+@pytest.fixture(scope="session")
 def alpha_db(data_dir: Path) -> Path:
     return data_dir / "data" / "synthetic" / "demo-alpha.duckdb"
 

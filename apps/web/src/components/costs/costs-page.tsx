@@ -161,9 +161,9 @@ function CostComparisonPanel() {
   );
 }
 
-const ABC_COLUMNS: SimpleColumn[] = [
+const abcColumns = (currency: string | null): SimpleColumn[] => [
   { key: "i", label: "Item", render: (r) => <span className="code text-xs">{r.item_id}</span> },
-  { key: "v", label: "On-hand value", align: "right", render: (r) => <span className="figure">{r.value}</span> },
+  { key: "v", label: "On-hand value", align: "right", render: (r) => <span className="figure">{formatMoney(r.value as string, currency)}</span> },
   { key: "c", label: "Computed", render: (r) => r.computed ?? "—" },
   { key: "a", label: "Assigned in source", render: (r) => r.assigned ?? "—" },
   { key: "d", label: "", render: (r) => (r.differs ? <Badge tone="signal">differs</Badge> : null) },
@@ -216,7 +216,7 @@ function AbcPanel() {
               </span>
             ))}
           </div>
-          <SimpleTable columns={ABC_COLUMNS} rows={abc.data.items.slice(0, 40) as unknown as Row[]} empty="No items." rowKey={(r) => String(r.item_id)} minWidth="32rem" />
+          <SimpleTable columns={abcColumns(abc.data.currency)} rows={abc.data.items.slice(0, 40) as unknown as Row[]} empty="No items." rowKey={(r) => String(r.item_id)} minWidth="32rem" />
           <p className="text-xs text-ink-3">Showing the 40 highest-value items. {abc.data.rule}</p>
         </div>
       ) : null}

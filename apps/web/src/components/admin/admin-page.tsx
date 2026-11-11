@@ -12,7 +12,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { api, ApiError, type Me, type Row } from "@/lib/api";
-import { formatTimestamp } from "@/lib/format";
+import { formatNumber, formatTimestamp } from "@/lib/format";
 import { useMe } from "@/lib/hooks";
 
 type SchemaResult = {
@@ -29,6 +29,9 @@ type SchemaResult = {
   }[];
 };
 type Capability = { id: string; title: string; available: boolean; explanation: string | null };
+/** Reconciliation compares exact amounts: group the digits but keep every decimal the source sent (up to 8). */
+const exact = (v: unknown) => formatNumber(typeof v === "string" || typeof v === "number" ? v : null, { minFraction: 2, maxFraction: 8 });
+
 type ReconLine = { warehouse_id: string; currency: string; platform: string | null; customer: string | null; difference: string | null; status: string };
 type Recon = { passed: boolean; counts: Record<string, number>; lines: ReconLine[]; tolerance: string; note: string };
 
@@ -127,9 +130,9 @@ function ReconciliationPanel() {
   const cols: SimpleColumn[] = [
     { key: "w", label: "Warehouse", render: (r) => <span className="code text-xs">{r.warehouse_id}</span> },
     { key: "c", label: "Currency", render: (r) => <span className="text-xs">{r.currency}</span> },
-    { key: "p", label: "Platform", align: "right", render: (r) => <span className="figure">{r.platform ?? "—"}</span> },
-    { key: "u", label: "Customer report", align: "right", render: (r) => <span className="figure">{r.customer ?? "—"}</span> },
-    { key: "d", label: "Difference", align: "right", render: (r) => <span className="figure">{r.difference ?? "—"}</span> },
+    { key: "p", label: "Platform", align: "right", render: (r) => <span className="figure">{exact(r.platform)}</span> },
+    { key: "u", label: "Customer report", align: "right", render: (r) => <span className="figure">{exact(r.customer)}</span> },
+    { key: "d", label: "Difference", align: "right", render: (r) => <span className="figure">{exact(r.difference)}</span> },
     { key: "s", label: "Status", render: (r) => <span className={clsx("text-xs font-semibold", r.status === "match" ? "text-ok" : "text-signal")}>{String(r.status).replaceAll("_", " ")}</span> },
   ];
   return (

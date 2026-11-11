@@ -17,26 +17,25 @@ from lumiant.nomap.discovery import PROFILE_UP_TO, discover, profile_table
 from lumiant.nomap.safe_sql import AccessPolicy, prepare
 from lumiant.nomap.source import Source
 
-DATA = Path(__file__).parents[2] / "data" / "synthetic"
 HIDDEN = frozenset({"_dataset_info"})
 
 
-def copy(tmp: Path, name: str) -> Source:
+def copy(tmp: Path, name: str, data: Path) -> Source:
     path = tmp / f"{name}.duckdb"
-    shutil.copy(DATA / f"demo-{name}.duckdb", path)
+    shutil.copy(data / f"demo-{name}.duckdb", path)
     return Source.duckdb(path)
 
 
 @pytest.fixture(scope="module")
-def alpha(tmp_path_factory: pytest.TempPathFactory) -> Any:
-    src = copy(tmp_path_factory.mktemp("alpha"), "alpha")
+def alpha(tmp_path_factory: pytest.TempPathFactory, full_size_dir: Path) -> Any:
+    src = copy(tmp_path_factory.mktemp("alpha"), "alpha", full_size_dir)
     yield src, discover(src, exclude=HIDDEN)
     src.dispose()
 
 
 @pytest.fixture(scope="module")
-def gamma(tmp_path_factory: pytest.TempPathFactory) -> Any:
-    src = copy(tmp_path_factory.mktemp("gamma"), "gamma")
+def gamma(tmp_path_factory: pytest.TempPathFactory, full_size_dir: Path) -> Any:
+    src = copy(tmp_path_factory.mktemp("gamma"), "gamma", full_size_dir)
     yield src, discover(src, exclude=HIDDEN)
     src.dispose()
 
@@ -115,8 +114,8 @@ def test_health_checks_find_the_traps_in_an_sap_export(gamma: Any) -> None:
     assert "CHECK: 1 duplicate rows" in catalog.render()
 
 
-def test_health_checks_do_not_cry_wolf(tmp_path: Path) -> None:
-    src = copy(tmp_path, "beta")
+def test_health_checks_do_not_cry_wolf(tmp_path: Path, full_size_dir: Path) -> None:
+    src = copy(tmp_path, "beta", full_size_dir)
     checks = " | ".join(c for t in discover(src, exclude=HIDDEN).tables for c in t.checks)
     src.dispose()
     assert "currency_code holds 2 currencies (GBP, EUR)" in checks
@@ -169,8 +168,8 @@ def test_discovery_and_limits_run_on_sqlite(tmp_path: Path) -> None:
     src.dispose()
 
 
-def test_profiling_a_table_with_nothing_profiled_yet(tmp_path: Path) -> None:
-    src = copy(tmp_path, "alpha")
+def test_profiling_a_table_with_nothing_profiled_yet(tmp_path: Path, full_size_dir: Path) -> None:
+    src = copy(tmp_path, "alpha", full_size_dir)
     catalog = discover(src, exclude=HIDDEN, profile_up_to=0)
     assert isinstance(catalog, Catalog)
     plant = catalog.find("ZV_PLANT")

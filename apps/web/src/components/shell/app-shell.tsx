@@ -251,15 +251,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="min-w-0">
           <header className="glass sticky top-0 z-(--z-sticky) border-b border-line">
-            <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 lg:flex-nowrap">
+            <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:px-6 xl:flex-nowrap">
               <div className="flex min-w-0 shrink items-center gap-3">
                 <Link href="/overview" aria-label="Lumiant home" className="md:hidden">
                   <span aria-hidden className="grid size-7 place-items-center rounded-control bg-accent text-dense font-bold text-accent-ink">
                     L
                   </span>
                 </Link>
-                <span className="truncate text-sm font-semibold text-ink">{user?.tenant.display_name ?? " "}</span>
-                {meta.data && <DataBadge classification={meta.data.data_classification} synthetic={meta.data.synthetic} />}
+                <span className="min-w-0 truncate text-sm font-semibold text-ink">{user?.tenant.display_name ?? " "}</span>
+                {meta.data && (
+                  <span className="shrink-0">
+                    <DataBadge classification={meta.data.data_classification} synthetic={meta.data.synthetic} />
+                  </span>
+                )}
               </div>
 
               <button
@@ -267,7 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setPaletteOpen(true)}
                 aria-keyshortcuts="Control+K Meta+K"
                 aria-haspopup="dialog"
-                className="order-last flex h-9 w-full items-center gap-2.5 rounded-control border border-line-strong bg-surface px-3 text-left text-sm text-ink-3 transition-colors hover:border-control-line hover:text-ink-2 lg:order-none lg:w-auto lg:max-w-md lg:min-w-48 lg:flex-1"
+                className="order-last flex h-9 w-full items-center gap-2.5 rounded-control border border-line-strong bg-surface px-3 text-left text-sm text-ink-3 transition-colors hover:border-control-line hover:text-ink-2 xl:order-none xl:w-auto xl:max-w-md xl:min-w-48 xl:flex-1"
               >
                 <Search size={15} aria-hidden className="shrink-0" />
                 <span className="truncate">{canAsk ? "Search, jump or ask…" : "Search or jump…"}</span>

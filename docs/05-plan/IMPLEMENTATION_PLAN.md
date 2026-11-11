@@ -134,6 +134,8 @@ Visual layer only: same routes, navigation labels, behaviour, wording, permissio
 - [x] V6 Every page moved onto the primitives: Overview, Inventory, Risks, Costs, Explore, Assistant, Reports, Admin, sign-in; pager and provenance slip
 - [x] V7 Enforcement: token lint, radius and glow greps, lint, typecheck, unit, e2e on a clean-cache build
 - [x] V8 Visual review from headless screenshots: nine screens in dark and light, 375 px, palette, dock, component states (S07-6)
-- [ ] Owner looks at it on a real display in both themes (ISSUES #51)
-- [ ] Table header that stays in view while scrolling (ISSUES #50; planned with the virtualized grid)
+- [x] Live check in the in-app browser, dark and light (S07-9); owner's own screen still to come (ISSUES #51)
+- [x] Table header that stays in view while scrolling (ISSUES #50)
+- [x] Formatted ABC values and reconciliation amounts (ISSUES #52)
+- [x] CI green again: no-mapping tests no longer need the developer's local data (ISSUES #54)
 - [ ] axe accessibility run (still open from M10 D5)

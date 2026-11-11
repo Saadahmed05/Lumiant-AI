@@ -8,6 +8,10 @@ import { ArrowDown, ArrowUp } from "lucide-react";
  *
  * Columns sit 24 px apart; the first and last cell keep the panel's own inset so the table lines up with the panel
  * title. A right-aligned cell never wraps: a number must not be split from its unit or currency.
+ *
+ * A long table scrolls inside its panel (at most 70 % of the window) and its header row stays in view. The wrapper is
+ * the scroll container on both axes, so `position: sticky` on the header cells works against it; a wrapper that only
+ * scrolled sideways would trap the header and let it scroll away with the page.
  */
 const CELL_X = "px-3 first:pl-4 last:pr-4 sm:first:pl-5 sm:last:pr-5";
 export function DataTable({
@@ -22,7 +26,7 @@ export function DataTable({
   children: React.ReactNode;
 }) {
   return (
-    <div className="-mx-4 overflow-x-auto sm:-mx-5">
+    <div className="-mx-4 max-h-[min(70vh,44rem)] overflow-auto overscroll-contain sm:-mx-5">
       <table className="w-full text-dense text-ink-2" style={{ minWidth }} aria-busy={busy} data-testid={testId}>
         {children}
       </table>
@@ -31,7 +35,7 @@ export function DataTable({
 }
 
 export function HeadRow({ children }: { children: React.ReactNode }) {
-  return <tr className="border-y border-line bg-surface-2/40">{children}</tr>;
+  return <tr>{children}</tr>;
 }
 
 type Sort = { active: boolean; dir: "asc" | "desc"; onSort: () => void };
@@ -41,7 +45,7 @@ export function Th({ align, sort, className, children }: { align?: "right"; sort
     <th
       scope="col"
       aria-sort={sort?.active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-      className={clsx("eyebrow py-2", CELL_X, align === "right" ? "text-right" : "text-left", className)}
+      className={clsx("eyebrow sticky top-0 z-1 bg-surface-2 py-2 shadow-[inset_0_1px_0_var(--line),inset_0_-1px_0_var(--line)]", CELL_X, align === "right" ? "text-right" : "text-left", className)}
     >
       {sort ? (
         <button

@@ -272,3 +272,9 @@ Append-only. Newest entry at the bottom. Template in `../00-context/CONTEXT_FLOW
 - **Deviations from the plan:** no baseline unit/e2e run and no "before" screenshots (owner stopped the baseline); no sticky table header (ISSUES #50); visual check from headless screenshots, not a real display (ISSUES #51); `ship-check` skill not run (its checks were run one by one); API tests not run (backend untouched).
 - **Records:** ADR-0011, DEC-024/025, ISSUES #39 narrowed, #50–#52, FRONTEND, TESTING, USER_GUIDE, UI_UX_AUDIT note, CHANGELOG, IMPLEMENTATION_PLAN M11.
 - **Not done:** owner's look on a real display; axe run; D4 rest. Committed and pushed to `main` at the owner's request; CI not yet checked.
+
+## 2026-11-11 · S07 · CI fix and follow-ups of the refresh
+- **Goal:** owner: "do all things by yourself, fix it" after the push.
+- **Done:** CI had been red on `main` since the PR #3 merge: the no-mapping tests read the developer's untracked `data/synthetic`; a session fixture now generates that data (ISSUES #54). Sticky table header (#50). ABC values and reconciliation amounts formatted (#52). Command bar wraps below 1280 px so the SYNTHETIC label is never covered (#55). Live look in the in-app browser, dark and light (#51 partly).
+- **Kept on purpose:** numbers in answer sentences stay exact for the grounding guard (owner's call to change).
+- **Commands + results:** TEST_RUNS S07-8…S07-10. Committed and pushed at the owner's request.

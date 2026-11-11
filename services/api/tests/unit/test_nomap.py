@@ -17,7 +17,6 @@ from lumiant.nomap.discovery import discover
 from lumiant.nomap.safe_sql import AccessPolicy, UnsafeSqlError, prepare
 from lumiant.nomap.source import Source, SourceError
 
-DATA = Path(__file__).parents[2] / "data" / "synthetic"
 VIEWER = AccessPolicy(
     row_scope={"zv_stock": ("WERKS", frozenset({"3100"}))},
     hidden_columns={"zv_stock": {"VERPR"}},
@@ -26,9 +25,9 @@ VIEWER = AccessPolicy(
 
 
 @pytest.fixture(scope="module")
-def source(tmp_path_factory: pytest.TempPathFactory) -> Any:
+def source(tmp_path_factory: pytest.TempPathFactory, full_size_dir: Path) -> Any:
     path = tmp_path_factory.mktemp("nomap") / "alpha.duckdb"
-    shutil.copy(DATA / "demo-alpha.duckdb", path)
+    shutil.copy(full_size_dir / "demo-alpha.duckdb", path)
     src = Source.duckdb(path)
     yield src
     src.dispose()
@@ -244,9 +243,9 @@ def test_anthropic_adapter_sends_the_expected_request() -> None:
     assert "tool_choice" not in sent
 
 
-def test_source_files_stay_unchanged_by_chat(tmp_path: Path) -> None:
+def test_source_files_stay_unchanged_by_chat(tmp_path: Path, full_size_dir: Path) -> None:
     path = tmp_path / "copy.duckdb"
-    shutil.copy(DATA / "demo-beta.duckdb", path)
+    shutil.copy(full_size_dir / "demo-beta.duckdb", path)
     before = path.read_bytes()
     src = Source.duckdb(path)
     cat = discover(src, exclude=frozenset({"_dataset_info"}))
