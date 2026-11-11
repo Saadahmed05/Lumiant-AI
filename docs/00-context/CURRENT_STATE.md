@@ -3,8 +3,8 @@
 _Rewritten at the end of every session. Last update: 2026-11-11, S07 (M11 visual refresh of the web app: graphite + emerald, Inter, theme follows the device, shared control layer; web only; committed and pushed to `main` at the owner's request)._
 
 ## Milestone
-**M1–M6 complete on synthetic data; M8 (client SAP extract, local only), M9 (Gemini-ready agent with screen context, streaming and insights) and M10 D1–D3 + part of D4 (command-center UI, Analyst Lens, four overview areas) done; **M11 visual refresh done and pushed** (ADR-0011).** Code is on GitHub (`syedmukheeth/Lumiant-AI`, `main`), all PRs merged, none open. CI was last green on `647ef7b`; not re-checked since — confirm on the M11 push.
-**Next:** confirm CI is green on the S07 fix push (ISSUES #54); the owner looks at the new look on their own screen (ISSUES #51); a live Gemini check with the owner's key on a synthetic tenant; the rest of D4 (inventory grid, Material 360, Data sources); decide whether `lumiant.nomap` (prototype, not wired in) informs ADR-0002; the client's answers and further SAP files (Q-019…Q-026). M7 still needs `../07-customer/OPEN_QUESTIONS.md`.
+**M1–M6 complete on synthetic data; M8 (client SAP extract, local only), M9 (Gemini-ready agent with screen context, streaming and insights) and M10 D1–D3 + part of D4 (command-center UI, Analyst Lens, four overview areas) done; **M11 visual refresh done and pushed** (ADR-0011).** Code is on GitHub (`syedmukheeth/Lumiant-AI`, `main`), all PRs merged, none open. CI green on all five jobs at `9d5c843` (TEST_RUNS S07-11).
+**Next:** the owner looks at the new look on their own screen (ISSUES #51); a live Gemini check with the owner's key on a synthetic tenant; the rest of D4 (inventory grid, Material 360, Data sources); decide whether `lumiant.nomap` (prototype, not wired in) informs ADR-0002; the client's answers and further SAP files (Q-019…Q-026). M7 still needs `../07-customer/OPEN_QUESTIONS.md`.
 
 ## What works (verified by automated tests and manual browser checks)
 
@@ -39,7 +39,7 @@ D4 rest: virtualized inventory grid + Material 360, Admin › Data sources (ISSU
 `../07-customer/OPEN_QUESTIONS.md` — Q-001, Q-003, Q-006–Q-008, Q-010, Q-012, Q-013 (AI provider approval, now incl. Gemini), Q-019…Q-026 (SAP code meanings, stock statuses, next files: MB51/MSEG, MARC, MCHB/MCH1, T001W/T001L, EKPO).
 
 ## Next step
-0. Check GitHub Actions is green on the S07 fix push (ISSUES #54); owner opens the app on their own screen (ISSUES #51).
+0. Owner opens the app on their own screen (ISSUES #51).
 1. Owner: put a **paid** Gemini key in `services/api/.env` (`LUMIANT_AGENT_PROVIDER=gemini`, `LUMIANT_GEMINI_API_KEY=…`), set `ai.external_provider_approved: true` on a synthetic tenant only, and run a live check (closes part of ISSUES #13).
 2. Build D4 rest (ISSUES #39) on the same design system.
 3. Send Q-019…Q-026 and the file list to the client; load MB51/MARC/MCHB when they arrive to unlock dormant, reorder and expiry insights on real data.
