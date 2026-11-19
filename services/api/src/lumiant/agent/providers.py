@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
+from lumiant.agent.terminology import ascii_digits, expand, glossary_note
 from lumiant.agent.tools import (
     TOOLS,
     ItemArgs,
@@ -120,7 +121,7 @@ _DIM_PATTERNS = (
     (r"item group|by group|product group|material group", "item_group"),
     (r"\babc\b", "abc"),
     (r"\bstage\b|raw material|finished goods|material type", "stage"),
-    (r"stock status|quality inspection|\bqi\b|\bblocked\b|restricted|in transit|returns stock", "stock_status"),
+    (r"stock status|quality inspection|\bqi\b|\bblocked\b|(?<!un)restricted|in transit|returns stock", "stock_status"),
     (r"storage location|\bsloc\b|\bbins?\b|\blocations?\b", "location"),
     (r"warehouse|plant|site", "warehouse"),
 )
@@ -149,6 +150,11 @@ def _abc_class(q: str) -> str | None:
     """'A-category', 'class B' → the ABC letter as stored in the source (upper case)."""
     m = _ABC.search(q)
     return (m.group(1) or m.group(2)).upper() if m else None
+
+
+def _words(q: str) -> int:
+    """Words the user typed (the terminology hints after ' :: ' do not make a question longer)."""
+    return len(q.split(" :: ")[0].split())
 
 
 def _dimension(q: str) -> str | None:
@@ -218,7 +224,7 @@ class RuleBasedProvider:
         sels = ctx.context.selections if ctx.context else []
         if not sels:
             return None
-        short = len(q.split()) <= 3
+        short = _words(q) <= 3
         if not (short or _has(q, _DEICTIC) or _has(q, _ANALYZE) or _has(q, _COMPARE)):
             return None
         can_cost = ctx.principal.has(Permission.COST_READ)
@@ -257,7 +263,7 @@ class RuleBasedProvider:
     def _follow_up(self, q: str, ctx: ToolContext) -> Decision | None:
         """Re-run the previous tool with what changed ("and in warehouse 2100?", "what about quantity?")."""
         last = next((t for t in reversed(ctx.history) if t.tool), None)
-        if last is None or last.tool not in TOOLS or not (_has(q, _FOLLOW_UP) or len(q.split()) <= 4):
+        if last is None or last.tool not in TOOLS or not (_has(q, _FOLLOW_UP) or _words(q) <= 4):
             return None
         args: dict[str, Any] = dict(last.args)
         fields = TOOLS[last.tool].args.model_fields
@@ -281,7 +287,9 @@ class RuleBasedProvider:
 
     # ------------------------------------------------------------------------------------ decision
     def decide(self, question: str, ctx: ToolContext) -> Decision:
-        q = question.lower().strip()
+        # ERP and Arabic wording → canonical hints appended after " :: " ("stock by plant" also reads "warehouse").
+        q = expand(question)
+        question = ascii_digits(question).translate({ord("؟"): "?", ord("،"): ","})
         can_cost = ctx.principal.has(Permission.COST_READ)
         if _has(q, r"obsole"):
             return Decision(
@@ -315,10 +323,11 @@ class RuleBasedProvider:
             return Decision("tools", [ToolCall("data_quality")])
         if _has(q, r"expir|shelf[- ]life|best before"):
             return Decision("tools", [ToolCall("expiring_lots", {"days": parse_days(q, 60)})])
-        if _has(q, r"reorder|low stock|running low|below (the )?min"):
-            return Decision("tools", [ToolCall("below_reorder")])
+        # Excess first: "above the reordering rule maximum" names a reorder rule but asks about excess.
         if _has(q, r"excess|overstock|over-stock|above (the )?max"):
             return Decision("tools", [ToolCall("excess_stock")])
+        if _has(q, r"reorder|low stock|running low|below (the )?min"):
+            return Decision("tools", [ToolCall("below_reorder")])
         if _has(
             q,
             r"not moved|dormant|slow[- ]?moving|no movement|haven'?t moved|not been (issued|used)|\bidle\b|not (been )?(used|issued)",
@@ -494,7 +503,7 @@ class AnthropicProvider:
         response = self._client.messages.create(
             model=self._model,
             max_tokens=1024,
-            system=SYSTEM_PROMPT + context_note(ctx),
+            system=SYSTEM_PROMPT + context_note(ctx) + glossary_note(question),
             tools=tools,
             messages=[*history, {"role": "user", "content": question}],
         )
@@ -579,7 +588,9 @@ class GeminiProvider:
             contents += [{"role": "user", "parts": [{"text": q}]}, {"role": "model", "parts": [{"text": a}]}]
         contents.append({"role": "user", "parts": [{"text": question}]})
         response = self._client.models.generate_content(
-            model=self._model, contents=contents, config=self._config(ctx, SYSTEM_PROMPT + context_note(ctx))
+            model=self._model,
+            contents=contents,
+            config=self._config(ctx, SYSTEM_PROMPT + context_note(ctx) + glossary_note(question)),
         )
         self._contents = contents
         candidates = getattr(response, "candidates", None) or []

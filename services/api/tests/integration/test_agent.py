@@ -76,6 +76,43 @@ def test_adversarial_questions(agent: AgentService, principals: dict[str, Princi
             assert out["tool_calls"][0]["args"][key] == value
 
 
+@pytest.mark.parametrize("case", load("terminology.yaml"), ids=lambda c: f"{c['user']}: {c['question'][:45]}")
+def test_terminology_questions(agent: AgentService, principals: dict[str, Principal], case: dict[str, Any]) -> None:
+    """SAP, Odoo, Oracle Fusion, plain-English and Arabic wording reach the same analyses, within permissions."""
+    out = ask(agent, principals, case["user"], case["question"])
+    blob = json.dumps(out, default=str)
+    assert out["grounding"]["passed"], out["grounding"]
+    for word in case.get("forbid", []):
+        assert word not in blob, f"{word!r} leaked for {case['user']}"
+    if "kind" in case:
+        assert out["kind"] == case["kind"], out["tool_calls"]
+        assert out["blocks"] == []
+        return
+    assert [c["name"] for c in out["tool_calls"]][:1] == [case["tool"]], out["tool_calls"]
+    for key, value in case.get("args", {}).items():
+        assert out["tool_calls"][0]["args"][key] == value, out["tool_calls"]
+    assert out["answer"]
+
+
+def test_arabic_item_questions_resolve_the_item(
+    agent: AgentService, principals: dict[str, Principal], alpha_db: Path
+) -> None:
+    from tests.helpers import raw_duckdb
+
+    con = raw_duckdb(alpha_db)
+    code = con.execute("SELECT MATNR FROM ZV_STOCK GROUP BY MATNR ORDER BY SUM(LABST) DESC LIMIT 1").fetchone()
+    con.close()
+    assert code is not None
+    arabic_digits = str(code[0]).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+    for question in (
+        f"كم الكمية في اليد من الصنف {code[0]}؟",
+        f"أين يوجد الصنف {arabic_digits}؟",
+        f"كم المخزون من الصنف {arabic_digits}؟",
+    ):
+        out = ask(agent, principals, "alpha.admin", question)
+        assert out["tool_calls"][0] == {"name": "stock_position", "args": {"item_id": code[0]}}, question
+
+
 # ------------------------------------------------------------------------------------------- behaviour
 def test_below_reorder_answer_matches_the_analysis(agent: AgentService, principals: dict[str, Principal]) -> None:
     out = ask(agent, principals, "alpha.admin", "Which items are below reorder level?")

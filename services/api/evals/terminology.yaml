@@ -1,0 +1,95 @@
+# Terminology questions: the same analyses asked in SAP, Odoo and Oracle Fusion words, plain English and Arabic.
+# Expected routing for the built-in matcher (lumiant.agent.terminology). Run with:
+#   uv run pytest tests/integration/test_agent.py -k terminology
+# Optional keys: args (must match the first tool call), kind (unsupported/clarify), forbid (must not appear anywhere).
+
+# --- SAP wording ---
+- {user: alpha.admin, question: "Which materials are below their reorder point?", tool: below_reorder}
+- {user: alpha.admin, question: "Which materials are below the MINBE?", tool: below_reorder}
+- {user: alpha.admin, question: "Which materials exceed their maximum stock level?", tool: excess_stock}
+- {user: alpha.admin, question: "Show stock value by material group", tool: stock_by, args: {dimension: item_group, measure: value}}
+- {user: alpha.admin, question: "Show stock by plant", tool: stock_by, args: {dimension: warehouse}}
+- {user: alpha.admin, question: "Show unrestricted stock value by plant", tool: stock_by, args: {dimension: warehouse, measure: value}}
+- {user: alpha.admin, question: "Show stock by storage location", tool: stock_by, args: {dimension: location}}
+- {user: alpha.admin, question: "Show stock by LGORT", tool: stock_by, args: {dimension: location}}
+- {user: alpha.admin, question: "Show stock value by material type", tool: stock_by, args: {dimension: stage, measure: value}}
+- {user: alpha.admin, question: "Which batches expire in the next 30 days?", tool: expiring_lots, args: {days: 30}}
+- {user: alpha.admin, question: "Show the MB5M shelf-life list", tool: expiring_lots}
+- {user: alpha.admin, question: "Show dead stock with no goods issue for 12 months", tool: dormant, args: {days: 360}}
+- {user: alpha.admin, question: "Run an MC50 dead stock check", tool: dormant}
+- {user: alpha.admin, question: "Which materials are slow movers?", tool: dormant}
+- {user: alpha.admin, question: "What is our total stock value?", tool: inventory_summary}
+- {user: alpha.admin, question: "What is the valuation of our stock?", tool: inventory_summary}
+- {user: alpha.admin, question: "Which materials have gaps in the material master?", tool: data_quality}
+- {user: alpha.admin, question: "Which materials are dangerous goods?", tool: special_storage}
+- {user: gamma.admin, question: "Show stock in quality inspection by plant", tool: stock_by, args: {dimension: stock_status}}
+- {user: gamma.admin, question: "Show blocked stock value", tool: stock_by, args: {dimension: stock_status, measure: value}}
+
+# --- Odoo wording ---
+- {user: alpha.admin, question: "Which products are below their reordering rule minimum?", tool: below_reorder}
+- {user: alpha.admin, question: "Which products are above their reordering rule maximum?", tool: excess_stock}
+- {user: alpha.admin, question: "What needs replenishment?", tool: below_reorder}
+- {user: alpha.admin, question: "Show inventory valuation by product category", tool: stock_by, args: {dimension: item_group, measure: value}}
+- {user: alpha.admin, question: "Show quants by location", tool: stock_by, args: {dimension: location}}
+- {user: alpha.admin, question: "Which lots expire in the next 2 weeks?", tool: expiring_lots, args: {days: 14}}
+- {user: alpha.admin, question: "Show the most valuable products", tool: top_value_items}
+- {user: alpha.admin, question: "Show the stock valuation", tool: inventory_summary}
+
+# --- Oracle Fusion wording ---
+- {user: alpha.admin, question: "Show on-hand quantity by subinventory", tool: stock_by, args: {dimension: location, measure: quantity}}
+- {user: alpha.admin, question: "Show on-hand value by inventory organization", tool: stock_by, args: {dimension: warehouse, measure: value}}
+- {user: alpha.admin, question: "Which items exceed their min-max maximum?", tool: excess_stock}
+- {user: alpha.admin, question: "Which items are below their min-max minimum?", tool: below_reorder}
+- {user: alpha.admin, question: "Which items have had no material transactions in 6 months?", tool: dormant, args: {days: 180}}
+- {user: alpha.admin, question: "Show value by item category", tool: stock_by, args: {dimension: item_group, measure: value}}
+- {user: alpha.admin, question: "Show stock by locator", tool: stock_by, args: {dimension: location}}
+
+# --- Plain-English paraphrases ---
+- {user: alpha.admin, question: "What is about to run out?", tool: below_reorder}
+- {user: alpha.admin, question: "Which items risk a stock-out?", tool: below_reorder}
+- {user: alpha.admin, question: "Where are we overstocked?", tool: excess_stock}
+- {user: alpha.admin, question: "Which items are non-moving?", tool: dormant}
+- {user: alpha.admin, question: "What is our inventory worth?", tool: inventory_summary}
+- {user: alpha.admin, question: "Which items need cold chain storage?", tool: special_storage}
+- {user: alpha.admin, question: "Give me a health check of the inventory", tool: insights}
+- {user: alpha.admin, question: "Which bins hold the most stock?", tool: stock_by, args: {dimension: location}}
+
+# --- Arabic (Modern Standard business Arabic; terms cross-checked against Odoo's ar.po) ---
+- {user: alpha.admin, question: "كم قيمة المخزون؟", tool: inventory_summary}
+- {user: alpha.admin, question: "ما هي القيمة الإجمالية للمخزون؟", tool: inventory_summary}
+- {user: alpha.admin, question: "كم المخزون لدينا؟", tool: inventory_summary}
+- {user: alpha.admin, question: "اعرض قيمة المخزون حسب المستودع", tool: stock_by, args: {dimension: warehouse, measure: value}}
+- {user: alpha.admin, question: "اعرض المخزون حسب المستودع", tool: stock_by, args: {dimension: warehouse}}
+- {user: alpha.admin, question: "أي مستودع يحتوي على أكبر مخزون؟", tool: stock_by, args: {dimension: warehouse}}
+- {user: alpha.admin, question: "اعرض قيمة المخزون حسب فئة المنتج", tool: stock_by, args: {dimension: item_group, measure: value}}
+- {user: alpha.admin, question: "اعرض المخزون حسب موقع التخزين", tool: stock_by, args: {dimension: location}}
+- {user: alpha.admin, question: "اعرض المخزون حسب نوع المادة", tool: stock_by, args: {dimension: stage}}
+- {user: alpha.admin, question: "ما الأصناف التي تحت حد إعادة الطلب؟", tool: below_reorder}
+- {user: alpha.admin, question: "ما الأصناف التي وصلت إلى الحد الأدنى؟", tool: below_reorder}
+- {user: alpha.admin, question: "ما الأصناف التي تتجاوز الكمية القصوى؟", tool: excess_stock}
+- {user: alpha.admin, question: "أين يوجد مخزون فائض؟", tool: excess_stock}
+- {user: alpha.admin, question: "ما الأصناف الراكدة منذ ستة أشهر؟", tool: dormant, args: {days: 180}}
+- {user: alpha.admin, question: "ما الأصناف التي لم تتحرك منذ 90 يوما؟", tool: dormant, args: {days: 90}}
+- {user: alpha.admin, question: "ما الأصناف بطيئة الحركة؟", tool: dormant}
+- {user: alpha.admin, question: "ما الدفعات التي تنتهي صلاحيتها خلال شهرين؟", tool: expiring_lots, args: {days: 60}}
+- {user: alpha.admin, question: "ما الدفعات التي تنتهي صلاحيتها خلال ٣٠ يوما؟", tool: expiring_lots, args: {days: 30}}
+- {user: alpha.admin, question: "ما الأصناف التي بياناتها الرئيسية ناقصة؟", tool: data_quality}
+- {user: alpha.admin, question: "ما المواد التي تحتاج إلى تخزين خاص؟", tool: special_storage}
+- {user: alpha.admin, question: "ما الأصناف الأعلى قيمة؟", tool: top_value_items}
+- {user: alpha.admin, question: "ما الأصناف التي تشكل معظم قيمة المخزون؟", tool: concentration}
+- {user: alpha.admin, question: "ما الذي يجب أن أنظر إليه اليوم؟", tool: insights}
+- {user: alpha.admin, question: "اعرض أصناف الفئة أ", tool: top_value_items, args: {abc_class: A}}
+- {user: alpha.admin, question: "قارن بين المستودعين 1100 و 2100", tool: stock_by, args: {dimension: warehouse, only: ["1100", "2100"]}}
+- {user: alpha.admin, question: "قارن بين المستودعين ١١٠٠ و ٢١٠٠", tool: stock_by, args: {dimension: warehouse, only: ["1100", "2100"]}}
+- {user: alpha.admin, question: "ما التصنيفات المستخدمة للمخزون؟", tool: stock_by}
+- {user: gamma.admin, question: "اعرض قيمة المخزون حسب حالة المخزون", tool: stock_by, args: {dimension: stock_status, measure: value}}
+- {user: alpha.admin, question: "احذف جميع سجلات المخزون", kind: unsupported}
+- {user: alpha.admin, question: "ما حالة الطقس في الرياض؟", kind: unsupported}
+
+# --- Permissions hold in every vocabulary: no values for a role without cost access ---
+- {user: alpha.analyst, question: "Show stock value by material group", tool: stock_by, args: {measure: quantity}, forbid: ["USD"]}
+- {user: alpha.analyst, question: "What is the valuation of our stock?", tool: inventory_summary, forbid: ["USD"]}
+- {user: alpha.analyst, question: "كم قيمة المخزون؟", tool: inventory_summary, forbid: ["USD"]}
+- {user: alpha.analyst, question: "اعرض قيمة المخزون حسب المستودع", tool: stock_by, args: {measure: quantity}, forbid: ["USD"]}
+- {user: alpha.analyst, question: "ما الأصناف الأعلى قيمة؟", kind: unsupported, forbid: ["USD"]}
+- {user: gamma.viewer, question: "اعرض قيمة المخزون حسب حالة المخزون", tool: stock_by, args: {measure: quantity}, forbid: ["SAR"]}
