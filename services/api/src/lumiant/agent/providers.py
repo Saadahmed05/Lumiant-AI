@@ -39,7 +39,7 @@ class ToolCall:
 
 @dataclass
 class Decision:
-    kind: Literal["tools", "clarify", "unsupported"]
+    kind: Literal["tools", "clarify", "unsupported", "reply"]  # reply: greetings and small talk, no tool
     calls: list[ToolCall] = field(default_factory=list)
     message: str = ""
     choices: list[dict[str, str]] = field(default_factory=list)
@@ -121,7 +121,7 @@ _DIM_PATTERNS = (
     (r"item group|by group|product group|material group", "item_group"),
     (r"\babc\b", "abc"),
     (r"\bstage\b|raw material|finished goods|material type", "stage"),
-    (r"stock status|quality inspection|\bqi\b|\bblocked\b|(?<!un)restricted|in transit|returns stock", "stock_status"),
+    (r"stock status|quality inspection|\bqi\b|\bblocked\b|(?<!un)restricted|\btransit\b|returns stock", "stock_status"),
     (r"storage location|\bsloc\b|\bbins?\b|\blocations?\b", "location"),
     (r"warehouse|plant|site", "warehouse"),
 )
@@ -136,7 +136,12 @@ _TOTAL = (
 _NAMES_SOMETHING = r"\bitem\b|\b(for|of)\s+(?!(our|the|all|my|inventory|stock)\b)\w"
 _HIGHEST_VALUE = (
     r"highest[- ](inventory |stock |on[- ]hand )?value|most valuable|top .*value|biggest .*value|"
-    r"most expensive (stock|items?)|largest .*value"
+    r"most expensive (stock|items?)|largest .*value|(items?|materials?|products?|skus?) (are |is )?worth the most"
+)
+# Master-data fields customers know from SAP exports that no tool can group by yet: say so instead of guessing.
+_UNGROUPABLE = (
+    r"\bby (the )?(base )?(unit of measure|uom|valuation class|purchasing group|mrp type|price control|"
+    r"valuation type|created by|last change)\b"
 )
 _CLASSIFICATIONS = r"classification|how (is|are) (our |the )?(inventory|stock|items) (classified|categori[sz]ed)"
 _ITEM_WHERE = (
@@ -180,7 +185,7 @@ class RuleBasedProvider:
         """Visible warehouses named in the question by id or name, in the order they appear."""
         hits: list[tuple[int, str]] = []
         for w in visible_warehouses(ctx):
-            wid, name = str(w["warehouse_id"]), str(w["name"] or "")
+            wid, name = str(w["warehouse_id"]), str(w.get("name") or "")
             m = re.search(rf"\b{re.escape(wid.lower())}\b", q)
             pos = m.start() if m else (q.find(name.lower()) if name else -1)
             if pos >= 0:
@@ -303,6 +308,14 @@ class RuleBasedProvider:
         contextual = self._contextual(q, ctx)
         if contextual:
             return contextual
+        if _has(q, _UNGROUPABLE):
+            return Decision(
+                "unsupported",
+                message=(
+                    "I can't group stock by that field yet. I can break it down by warehouse, storage location, item "
+                    "group, material type, ABC class or stock status, and quantities are always shown per unit of measure."
+                ),
+            )
         if ctx.history and _has(q, _FOLLOW_UP):
             follow = self._follow_up(q, ctx)
             if follow:
@@ -319,7 +332,11 @@ class RuleBasedProvider:
                     "unsupported", message="Your role can't view inventory values, so I can't show value concentration."
                 )
             return Decision("tools", [ToolCall("concentration")])
-        if _has(q, r"data quality|master[- ]?data|incomplete|missing (data|information|fields)"):
+        if _has(
+            q,
+            r"data quality|master[- ]?data|incomplete|missing (data|information|fields)|"
+            r"\b(no|zero|missing|without( an?)?) (valuation |unit )?(price|abc( indicator| class)?|material master)\b",
+        ):
             return Decision("tools", [ToolCall("data_quality")])
         if _has(q, r"expir|shelf[- ]life|best before"):
             return Decision("tools", [ToolCall("expiring_lots", {"days": parse_days(q, 60)})])
@@ -391,7 +408,9 @@ class RuleBasedProvider:
                         message=f"Item {item['item_code']} is held in {len(holders)} warehouses. Which one?",
                         choices=[
                             {
-                                "label": f"{h['warehouse_id']} — {h['warehouse.name']}",
+                                "label": f"{h['warehouse_id']} — {h['warehouse.name']}"
+                                if h.get("warehouse.name")
+                                else str(h["warehouse_id"]),
                                 "item_id": str(item["item_id"]),
                                 "warehouse_id": str(h["warehouse_id"]),
                             }
